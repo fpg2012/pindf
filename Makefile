@@ -1,7 +1,5 @@
 all:
-	CC main.c lexer.c uchar_str.c -g
-run: all
-	./a.out
+	CC -o lexer_test lexer_test.c lexer.c uchar_str.c -g
 clean:
-	rm a.out lexer.h.pch
-	rm -r a.out.dSYM
+	rm lexer_test
+	rm *.pch || rm -r *.dSYM

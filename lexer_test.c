@@ -9,7 +9,7 @@ int main(int argc, const char **argv)
 {
 	if (argc != 2) {
 		perror("Too more or too few arguments");
-		perror("Usage: a.out [filename]");
+		fprintf(stderr, "Usage:\n\t %s [filename]", argv[0]);
 		exit(0);
 	}
 	struct pindf_lexer *lexer = pindf_lexer_new();
