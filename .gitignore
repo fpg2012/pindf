@@ -3,3 +3,4 @@
 *.pch
 *.dSYM
 *.pdf
+.DS_Store

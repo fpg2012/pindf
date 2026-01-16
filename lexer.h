@@ -23,16 +23,17 @@
 #define PINDF_LEXER_STATE_IN_NAME		12
 #define PINDF_LEXER_STATE_ERR			-1
 
-#define PINDF_LEXER_BUFSIZE 1000
+#define PINDF_LEXER_BUFSIZE 32768
 
 #define PINDF_LEXER_NO_EMIT			0
 #define PINDF_LEXER_EMIT_REGULAR 		1
 #define PINDF_LEXER_EMIT_DELIM			2
-#define PDINF_LEXER_EMIT_LTR_STR		3
+#define PINDF_LEXER_EMIT_LTR_STR		3
 #define PINDF_LEXER_EMIT_HEX_STR		4
 #define PINDF_LEXER_EMIT_EOL			5
 #define PINDF_LEXER_EMIT_NAME			6
 #define PINDF_LEXER_EMIT_WHITE_SPACE		10
+#define PINDF_LEXER_EMIT_COMMENT		11
 #define PINDF_LEXER_EMIT_ERR			-2
 #define PINDF_LEXER_EMIT_EOF			-1
 
@@ -65,6 +66,7 @@ struct pindf_lexer {
 	int prev_state;
 	uchar buf[PINDF_LEXER_BUFSIZE];
 	size_t buf_end;
+	int string_level;
 };
 
 struct pindf_token {
@@ -75,9 +77,10 @@ struct pindf_token {
 };
 
 
-void pindf_init_lexer(struct pindf_lexer *lexer);
+struct pindf_lexer *pindf_lexer_new();
+void pindf_lexer_init(struct pindf_lexer *lexer);
 struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file);
-struct pindf_uchar_str *prindf_lex_get_stream(FILE *file, size_t len);
+struct pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
 
 struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str);
 void pindf_token_regular_lex(struct pindf_token *token);
