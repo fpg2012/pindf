@@ -1,6 +1,7 @@
 all:
-	CC main.c lexer.c lexer.h -g
-run:
-	./main
+	CC main.c lexer.c uchar_str.c -g
+run: all
+	./a.out
 clean:
-	rm main
+	rm a.out lexer.h.pch
+	rm -r a.out.dSYM

@@ -1,10 +1,12 @@
 #pragma once
 
 #include "type.h"
+#include "uchar_str.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #define PINDF_LEXER_STATE_DEFAULT		0
 #define PINDF_LEXER_STATE_REGULAR		1
@@ -18,19 +20,45 @@
 #define PINDF_LEXER_STATE_OUT_STREAM		9
 #define PINDF_LEXER_STATE_OUT_EOL		10
 #define PINDF_LEXER_STATE_IN_COMMENT		11
+#define PINDF_LEXER_STATE_IN_NAME		12
 #define PINDF_LEXER_STATE_ERR			-1
 
 #define PINDF_LEXER_BUFSIZE 1000
 
-#define PINDF_LEXER_NO_EMIT		0
-#define PINDF_LEXER_EMIT_REGULAR 	1
-#define PINDF_LEXER_EMIT_DELIM		2
-#define PDINF_LEXER_EMIT_LTR_STR	3
-#define PINDF_LEXER_EMIT_HEX_STR	4
-#define PINDF_LEXER_EMIT_EOL		5
-#define PINDF_LEXER_EMIT_WHITE_SPACE	10
-#define PINDF_LEXER_EMIT_ERR		-2
-#define PINDF_LEXER_EMIT_EOF		-1
+#define PINDF_LEXER_NO_EMIT			0
+#define PINDF_LEXER_EMIT_REGULAR 		1
+#define PINDF_LEXER_EMIT_DELIM			2
+#define PDINF_LEXER_EMIT_LTR_STR		3
+#define PINDF_LEXER_EMIT_HEX_STR		4
+#define PINDF_LEXER_EMIT_EOL			5
+#define PINDF_LEXER_EMIT_NAME			6
+#define PINDF_LEXER_EMIT_WHITE_SPACE		10
+#define PINDF_LEXER_EMIT_ERR			-2
+#define PINDF_LEXER_EMIT_EOF			-1
+
+#define PINDF_LEXER_REGTYPE_NORM	0
+#define PINDF_LEXER_REGTYPE_KWD		1
+#define PINDF_LEXER_REGTYPE_INT		1000
+#define PINDF_LEXER_REGTYPE_REAL	1001
+
+#define PINDF_KWD_UNK		0
+#define PINDF_KWD_endobj	1
+#define PINDF_KWD_endstream	2
+#define PINDF_KWD_f		3
+#define PINDF_KWD_false		4
+#define PINDF_KWD_n		5
+#define PINDF_KWD_null		6
+#define PINDF_KWD_obj		7
+#define PINDF_KWD_operators	8
+#define PINDF_KWD_R		9
+#define PINDF_KWD_startxref	10
+#define PINDF_KWD_stream	11
+#define PINDF_KWD_trailer	12
+#define PINDF_KWD_true		13
+#define PINDF_KWD_xref		14
+#define PINDF_KWD_END		15
+
+extern const char *pindf_lexer_keyword_list[];
 
 struct pindf_lexer {
 	int state;
@@ -39,11 +67,17 @@ struct pindf_lexer {
 	size_t buf_end;
 };
 
-struct pindf_lexer_event {
+struct pindf_token {
 	int event;
-	uchar *emit_str;
+	struct pindf_uchar_str *raw_str;
+	int reg_type; 	// only meaningful if event=regular
+	int kwd; 	// only meaningful if reg_type=kwd
 };
 
 
 void pindf_init_lexer(struct pindf_lexer *lexer);
-struct pindf_lexer_event pindf_lex(struct pindf_lexer *lexer, FILE *file);
+struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file);
+struct pindf_uchar_str *prindf_lex_get_stream(FILE *file, size_t len);
+
+struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str);
+void pindf_token_regular_lex(struct pindf_token *token);
