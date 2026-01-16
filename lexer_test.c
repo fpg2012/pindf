@@ -43,6 +43,7 @@ int main(int argc, const char **argv)
 			} else {
 				printf("(%d)", token->event);
 			}
+			break;
 		case PINDF_LEXER_EMIT_REGULAR:
 			if (token->reg_type == PINDF_LEXER_REGTYPE_KWD) {
 				printf("(%d:kwd-%d:%s)", token->event, token->kwd, token->raw_str->p);
