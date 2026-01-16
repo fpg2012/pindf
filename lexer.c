@@ -2,7 +2,7 @@
 #include "uchar_str.h"
 
 const char *pindf_lexer_keyword_list[] = {
-	"!!!unknown!!!",
+	"",
 	"endobj",
 	"endstream",
 	"f",
@@ -335,6 +335,8 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 				reg_type = PINDF_LEXER_REGTYPE_NORM;
 				break;
 			}
+		} else {
+			perror("Failed to parse int. This should not happen.");
 		}
 		p++;
 	}
@@ -361,7 +363,7 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 				break;
 			}
 		} else if (real_state == 1) {
-			if (*p >= '1' && *p <= '9') {
+			if (*p >= '0' && *p <= '9') {
 				;
 			} else if (*p == '.') {
 				real_state = 3;
@@ -373,12 +375,16 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 			if (*p != '.') {
 				reg_type = PINDF_LEXER_REGTYPE_NORM;
 				break;
+			} else {
+				real_state = 3;
 			}
 		} else if (real_state == 3) {
 			if (!(*p >= '0' && *p <= '9')) {
 				reg_type = PINDF_LEXER_REGTYPE_NORM;
 				break;
 			}
+		} else {
+			perror("Failed to parse real. This should not happen.");
 		}
 
 		p++;
