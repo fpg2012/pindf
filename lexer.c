@@ -322,9 +322,7 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 	reg_type = PINDF_LEXER_REGTYPE_INT;
 	while (p != end) {
 		if (int_state == 0) {
-			if (*p == '0') {
-				int_state = 2;
-			} else if (*p >= '1' && *p <= '9') {
+			if (*p >= '0' && *p <= '9') {
 				int_state = 1;
 			} else if (*p == '+' || *p == '-') {
 				;
@@ -337,9 +335,6 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 				reg_type = PINDF_LEXER_REGTYPE_NORM;
 				break;
 			}
-		} else if (int_state == 2) {
-			reg_type = PINDF_LEXER_REGTYPE_NORM;
-			break;
 		}
 		p++;
 	}
