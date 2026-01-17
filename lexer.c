@@ -241,6 +241,12 @@ struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file)
 				break;
 			case '[':
 			case ']':
+				emit = _prev_state_emit[lexer->prev_state];
+				emit_str = _emit(lexer);
+
+				_append_ch(lexer, ch);
+				lexer->state = PINDF_LEXER_STATE_DELIM;
+				break;
 			case '/':
 				emit = _prev_state_emit[lexer->prev_state];
 				emit_str = _emit(lexer);
