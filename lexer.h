@@ -50,14 +50,13 @@
 #define PINDF_KWD_n		5
 #define PINDF_KWD_null		6
 #define PINDF_KWD_obj		7
-#define PINDF_KWD_operators	8
-#define PINDF_KWD_R		9
-#define PINDF_KWD_startxref	10
-#define PINDF_KWD_stream	11
-#define PINDF_KWD_trailer	12
-#define PINDF_KWD_true		13
-#define PINDF_KWD_xref		14
-#define PINDF_KWD_END		15
+#define PINDF_KWD_R		8
+#define PINDF_KWD_startxref	9
+#define PINDF_KWD_stream	10
+#define PINDF_KWD_trailer	11
+#define PINDF_KWD_true		12
+#define PINDF_KWD_xref		13
+#define PINDF_KWD_END		14
 
 extern const char *pindf_lexer_keyword_list[];
 

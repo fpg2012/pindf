@@ -5,4 +5,5 @@
 *.pdf
 .DS_Store
 
-lexer_test
+*_test
+output

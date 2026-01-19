@@ -10,7 +10,6 @@ const char *pindf_lexer_keyword_list[] = {
 	"n",
 	"null",
 	"obj",
-	"operators",
 	"R",
 	"startxref",
 	"stream",
