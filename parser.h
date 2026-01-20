@@ -4,6 +4,7 @@
 #include "lexer.h"
 #include "pdf_obj.h"
 #include "uchar_str.h"
+#include "pdf_doc.h"
 #include <stdlib.h>
 
 #define PINDF_SYMBOL_TERM	0
@@ -31,30 +32,6 @@ struct pindf_parser {
 	int dict_level;
 	int array_level;
 
-	// 0 - not in
-	// 1
-	// 2
-	// 3 - in (after obj kwd, waiting for obj)
-	// 4 - after obj, waiting for endobj kwd
-	int is_in_ind;
-
-	// 0 - not in
-	// 1 - may be in (after obj number)
-	// 2 - in (after generation number, waiting for R kwd)
-	int is_in_ref;
-	
-	// 0 - not dict
-	// 1 - key, waiting for value
-	// 2 - value, waiting for next key or >> delims
-	int dict_state;
-
-	// 0 - header
-	// 1 - body
-	// 2 - xref table
-	// 3 - trailer
-	// 4 - startxref
-	int file_part_state;
-
 	int last_reduct_pos;
 };
 
@@ -62,6 +39,7 @@ struct pindf_parser *pindf_parser_new();
 int pindf_parser_add_token(struct pindf_parser *parser, struct pindf_token * token);
 int pindf_parser_add_stream(struct pindf_parser *parser, struct pindf_uchar_str *stream);
 void pindf_parser_destroy(void *parser);
+void pindf_parser_file_parse(struct pindf_parser *parser, FILE *fp, uint64 file_len);
 
 struct pindf_symbol *pindf_symbol_new_term(struct pindf_token *token);
 struct pindf_symbol *pindf_symbol_new_nonterm(struct pindf_pdf_obj *pdf_obj);

@@ -4,6 +4,8 @@
 
 #include "parser.h"
 #include "lexer.h"
+#include "pdf_obj.h"
+#include "simple_vector.h"
 #include "uchar_str.h"
 
 
@@ -25,6 +27,24 @@ int main(int argc, const char **argv)
 	int ret = -1;
 
 	struct pindf_token *token = NULL;
+
+	uint64 file_len = 0;
+
+	fseek(f, 0, SEEK_END);
+	file_len = ftell(f);
+
+	assert(file_len > 0);
+
+	// === quick parse test ===
+	printf("=== quick parse test ===\n");
+	fseek(f, 0, SEEK_SET);
+	pindf_parser_file_parse(parser, f, file_len);
+	printf("file_len: %llu\n", file_len);
+	
+	fseek(f, 0, SEEK_SET);
+
+	// === full parse test ===
+	printf("=== full parse test ===\n");
 	do {
 		token = pindf_lex(lexer, f);
 		switch (token->event) {
@@ -67,15 +87,17 @@ int main(int argc, const char **argv)
 				printf("(%d)", token->event);
 			}
 		}
-		fflush(stdout);
 
 		if (token->event == -1) {
 			break;
 		}
 
 		ret = pindf_parser_add_token(parser, token);
-		if (ret < 0) {
-			break;
+
+		if (ret == -1) {
+			printf("exit\n");
+		} else if (ret == -2) {
+			printf("ret-2\n");
 		}
 
 		if (stream_state == 0) {
@@ -113,7 +135,59 @@ int main(int argc, const char **argv)
 			stream_state = 0;
 		}
 		fflush(stdout);
-	} while (token->event > 0 && ret == 0);
+	} while (token->event > 0 && ret >= 0);
+
+	// === serialize to json ===
+	printf("\n=== serialize to json ===\n");
+	uint64 obj_stack_len = parser->symbol_stack->len;
+	
+	struct pindf_symbol *temp_symbol;
+	char *buf = (char*)malloc(file_len * 2);
+	char *p = buf;
+	p += sprintf(p, "[\n");
+	for (uint64 i = 0; i < obj_stack_len; ++i) {
+		pindf_vector_index(parser->symbol_stack, i, &temp_symbol);
+		char *r = p;
+		if (temp_symbol->type == PINDF_SYMBOL_TERM) {
+			p += sprintf(p, "{\"type\":\"term\",\"raw\":\"");
+			uchar *q = temp_symbol->content.term->raw_str->p, *end = q + temp_symbol->content.term->raw_str->len;
+			while (q != end) {
+				if (*q == '\n') {
+					p += sprintf(p, "\\n");
+				} else if (*q == '\r') {
+					p += sprintf(p, "\\r");	
+				} else if (*q == '\0') {
+					p += sprintf(p, "\\0");
+				} else if (*q == '\"') {
+					p += sprintf(p, "\\\"");
+				} else if (*q == '\\') {
+					p += sprintf(p, "\\\\");
+				} else if (*q > 0x80) {
+					p += sprintf(p, "\\x%02x", (uint)*q);
+				} else {
+					*(p++) = *q;
+				}
+				q++;
+			}
+			p += sprintf(p, "\"}");
+			
+		} else {
+			p = pindf_pdf_obj_serialize_json(temp_symbol->content.non_term, p);
+		}
+
+		if (i < obj_stack_len - 1) {
+			p += sprintf(p, ",\n");
+		}
+
+		printf("\033[4;34m%s\033[0m\nrange: %ld-%ld\n", r, r - buf, p - buf);
+
+		printf("=== cur buf ===\n%s================\n\n", buf);
+	}
+	p += sprintf(p, "\n]\n");
+
+	FILE *out = fopen("out.json", "wb");
+	// fwrite(buf, sizeof(char), p - buf, stdout);
+	fwrite(buf, sizeof(char), p - buf, out);
 	
 	return 0;
 }

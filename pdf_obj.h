@@ -1,7 +1,10 @@
 #pragma once
 
 #include <stdlib.h>
+#include <stdio.h>
+#include "type.h"
 #include "uchar_str.h"
+#include "simple_vector.h"
 
 #define PINDF_PDF_OBJ	0
 #define PINDF_PDF_INT	1
@@ -71,3 +74,5 @@ struct pindf_pdf_obj {
 };
 
 struct pindf_pdf_obj *pindf_pdf_obj_new(int type);
+char *pindf_pdf_obj_serialize(struct pindf_pdf_obj *obj, char *buf);
+char *pindf_pdf_obj_serialize_json(struct pindf_pdf_obj *obj, char *buf);

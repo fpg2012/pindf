@@ -126,6 +126,7 @@ struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file)
 		if (lexer->state == PINDF_LEXER_STATE_IN_LTR_STR) {
 			switch (ch) {
 			case '\\':
+				_append_ch(lexer, ch);
 				lexer->state = PINDF_LEXER_STATE_IN_LTR_STR_ESC;
 				break;
 			case ')':
