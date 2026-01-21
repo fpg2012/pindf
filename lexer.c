@@ -44,6 +44,9 @@ void _append_ch(struct pindf_lexer *lexer, char ch)
 		fprintf(stderr, "current state: %d\n", lexer->state);
 		exit(0);
 	}
+	if (lexer->buf_end == 0) {
+		lexer->token_offset = lexer->offset;
+	}
 	lexer->buf[lexer->buf_end++] = ch;
 }
 
@@ -109,6 +112,7 @@ struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file)
 		}
 
 		int status = fgetc(file);
+		++lexer->offset;
 		if (status < 0) {
 			if (feof(file)) {
 				emit = PINDF_LEXER_EMIT_EOF;
@@ -276,17 +280,18 @@ struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file)
 		}
 	}
 
-	struct pindf_token *token = pindf_token_new(emit, emit_str);
+	struct pindf_token *token = pindf_token_new(emit, emit_str, lexer->token_offset);
 	if (emit == PINDF_LEXER_EMIT_REGULAR)
 		pindf_token_regular_lex(token);
 	return token;
 }
 
-struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str)
+struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str, uint64 offset)
 {
 	struct pindf_token *token = (struct pindf_token*)malloc(sizeof(struct pindf_token));
 	token->event = event;
 	token->raw_str = raw_str;
+	token->offset = offset;
 	return token;
 }
 
@@ -403,4 +408,21 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 
 	// fall back to norm
 	token->reg_type = reg_type;
+}
+
+struct pindf_token *pindf_lex_options(struct pindf_lexer *lexer, FILE *file, uint options)
+{
+	struct pindf_token *token;
+
+	uint ignore = 0;
+	do {
+		ignore = 0;
+		token = pindf_lex(lexer, file);
+
+		ignore |= token->event == PINDF_LEXER_EMIT_WHITE_SPACE && (options & PINDF_LEXER_OPT_IGNORE_WS);
+		ignore |= token->event == PINDF_LEXER_EMIT_COMMENT && (options & PINDF_LEXER_OPT_IGNORE_CMT);
+		ignore |= token->event == PINDF_LEXER_EMIT_EOL && (options & PINDF_LEXER_OPT_IGNORE_EOL);
+		ignore |= token->event == PINDF_LEXER_NO_EMIT && (options & PINDF_LEXER_NO_EMIT);
+	} while (ignore);
+	return token;
 }

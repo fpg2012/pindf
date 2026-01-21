@@ -58,6 +58,11 @@
 #define PINDF_KWD_xref		13
 #define PINDF_KWD_END		14
 
+#define PINDF_LEXER_OPT_IGNORE_WS	1
+#define PINDF_LEXER_OPT_IGNORE_EOL	2
+#define PINDF_LEXER_OPT_IGNORE_CMT	4
+#define PINDF_LEXER_OPT_IGNORE_NO_EMIT	8
+
 extern const char *pindf_lexer_keyword_list[];
 
 struct pindf_lexer {
@@ -66,6 +71,9 @@ struct pindf_lexer {
 	uchar buf[PINDF_LEXER_BUFSIZE];
 	size_t buf_end;
 	int string_level;
+
+	uint64 token_offset;
+	uint64 offset;
 };
 
 struct pindf_token {
@@ -73,13 +81,15 @@ struct pindf_token {
 	struct pindf_uchar_str *raw_str;
 	int reg_type; 	// only meaningful if event=regular
 	int kwd; 	// only meaningful if reg_type=kwd
+	uint64 offset;
 };
 
 
 struct pindf_lexer *pindf_lexer_new();
 void pindf_lexer_init(struct pindf_lexer *lexer);
 struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file);
+struct pindf_token *pindf_lex_options(struct pindf_lexer *lexer, FILE *file, uint options);
 struct pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
 
-struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str);
+struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str, uint64 offset);
 void pindf_token_regular_lex(struct pindf_token *token);

@@ -74,5 +74,3 @@ struct pindf_pdf_obj {
 };
 
 struct pindf_pdf_obj *pindf_pdf_obj_new(int type);
-char *pindf_pdf_obj_serialize(struct pindf_pdf_obj *obj, char *buf);
-char *pindf_pdf_obj_serialize_json(struct pindf_pdf_obj *obj, char *buf);

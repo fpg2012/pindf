@@ -1,6 +1,5 @@
 #include "parser.h"
 #include "lexer.h"
-#include "pdf_doc.h"
 #include "pdf_obj.h"
 #include "simple_vector.h"
 #include "uchar_str.h"
@@ -55,27 +54,27 @@
 		} \
 	} while (0)
 
-
 void _update_reduce_pos(struct pindf_parser *parser)
 {
-	pindf_vector_append(parser->reduce_pos_stack, &parser->last_reduct_pos);
-	parser->last_reduct_pos = parser->symbol_stack->len-1;
+	pindf_vector_append(parser->reduce_pos_stack, &parser->reduce_pos);
+	parser->reduce_pos = parser->symbol_stack->len-1;
 }
 
 void _restore_reduce_pos(struct pindf_parser *parser)
 {
-	pindf_vector_pop(parser->reduce_pos_stack, &parser->last_reduct_pos);
+	pindf_vector_pop(parser->reduce_pos_stack, &parser->reduce_pos);
 }
 
 // reduce functions group terms to a non_term
 int _reduce_array(struct pindf_parser *parser)
 {
-	size_t beg = parser->last_reduct_pos, p = beg;
+	size_t beg = parser->reduce_pos, p = beg;
 	size_t cap = parser->symbol_stack->len - beg;
 	struct pindf_vector *vec = pindf_vector_new(cap, sizeof(struct pindf_pdf_obj*), NULL);
 
 	struct pindf_symbol *symbol;
 	MATCH_DELIM_OR_ERR("array", '[');
+	uint64 offset = symbol->offset;
 
 	while (p < parser->symbol_stack->len - 1) {
 		MATCH_OBJ_OR_ERR("array");
@@ -89,7 +88,7 @@ int _reduce_array(struct pindf_parser *parser)
 	struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_ARRAY);
 	obj->content.array.items = vec;
 
-	symbol = pindf_symbol_new_nonterm(obj);
+	symbol = pindf_symbol_new_nonterm(obj, offset);
 	pindf_vector_append(parser->symbol_stack, &symbol);
 
 	_restore_reduce_pos(parser);
@@ -98,7 +97,7 @@ int _reduce_array(struct pindf_parser *parser)
 
 int _reduce_dict(struct pindf_parser *parser)
 {
-	size_t beg = parser->last_reduct_pos, p = beg;
+	size_t beg = parser->reduce_pos, p = beg;
 	struct pindf_symbol *symbol;
 
 	size_t cap = (parser->symbol_stack->len - beg) / 2 + 1;
@@ -106,6 +105,7 @@ int _reduce_dict(struct pindf_parser *parser)
 	struct pindf_vector *values = pindf_vector_new(cap, sizeof(struct pindf_pdf_obj*), NULL);
 
 	MATCH_DELIM_OR_ERR("dict", '<');
+	uint64 offset = symbol->offset;
 
 	while (p < parser->symbol_stack->len - 1) {
 		MATCH_OBJ_OR_ERR("dict");
@@ -127,7 +127,7 @@ int _reduce_dict(struct pindf_parser *parser)
 	obj->content.dict.keys = keys;
 	obj->content.dict.values = values;
 
-	symbol = pindf_symbol_new_nonterm(obj);
+	symbol = pindf_symbol_new_nonterm(obj, offset);
 	pindf_vector_append(parser->symbol_stack, &symbol);
 
 	_restore_reduce_pos(parser);
@@ -165,6 +165,7 @@ int _reduce_ind_obj(struct pindf_parser *parser)
 
 	size_t beg = parser->symbol_stack->len - 5;
 	size_t p = beg;
+	uint64 offset = 0;
 	for (int i = 0; i < 2; ++p,++i) {
 		pindf_vector_index(parser->symbol_stack, p, &symbol);
 		if (symbol->type != PINDF_SYMBOL_NONTERM ||
@@ -174,6 +175,8 @@ int _reduce_ind_obj(struct pindf_parser *parser)
 			return -1;
 		}
 		ab[i] = symbol->content.non_term->content.num;
+		if (i == 0)
+			offset = symbol->offset;
 	}
 	obj->content.indirect_obj.obj_num = ab[0];
 	obj->content.indirect_obj.generation_num = ab[1];
@@ -187,7 +190,7 @@ int _reduce_ind_obj(struct pindf_parser *parser)
 
 	POP_EVERYTHING();
 
-	symbol = pindf_symbol_new_nonterm(obj);
+	symbol = pindf_symbol_new_nonterm(obj, offset);
 	pindf_vector_append(parser->symbol_stack, &symbol);
 
 	return 0;
@@ -236,11 +239,12 @@ struct pindf_symbol *pindf_symbol_new_term(struct pindf_token *token)
 	return sym;
 }
 
-struct pindf_symbol *pindf_symbol_new_nonterm(struct pindf_pdf_obj *pdf_obj)
+struct pindf_symbol *pindf_symbol_new_nonterm(struct pindf_pdf_obj *pdf_obj, uint64 offset)
 {
 	struct pindf_symbol *sym = (struct pindf_symbol *)malloc(sizeof(struct pindf_symbol));
 	sym->type = PINDF_SYMBOL_NONTERM;
 	sym->content.non_term = pdf_obj;
+	sym->offset = offset;
 	return sym;
 }
 
@@ -249,17 +253,20 @@ struct pindf_parser *pindf_parser_new()
 	struct pindf_parser *parser = (struct pindf_parser*)malloc(sizeof(struct pindf_parser));
 	
 	parser->symbol_stack = pindf_vector_new(32768, sizeof(struct pindf_symbol*), NULL);
-	parser->dict_state_stack = pindf_vector_new(1024, sizeof(int), NULL);
 	parser->reduce_pos_stack = pindf_vector_new(1024, sizeof(int), NULL);
-
-	parser->dict_level = 0;
-	parser->array_level = 0;
 
 	// parser->file_part_state = 0;
 
-	parser->last_reduct_pos = 0;
+	parser->reduce_pos = 0;
 
 	return parser;
+}
+
+void pindf_parser_init(struct pindf_parser *parser)
+{
+	parser->reduce_pos = 0;
+	parser->symbol_stack->len = 0;
+	parser->reduce_pos_stack->len = 0;
 }
 
 int pindf_parser_add_token(struct pindf_parser *parser, struct pindf_token *token)
@@ -301,7 +308,7 @@ int pindf_parser_add_token(struct pindf_parser *parser, struct pindf_token *toke
 				fprintf(stderr, "invalid usage of keyword %s", token->raw_str->p);
 			}
 		} else {
-			perror("unrecognized regular token");
+			fprintf(stderr, "[error] unrecognized regular token %s", token->raw_str->p);
 			return -1;
 		}
 		break;
@@ -345,137 +352,9 @@ int pindf_parser_add_token(struct pindf_parser *parser, struct pindf_token *toke
 	return ret;
 }
 
-void pindf_parser_xref(void *parser, FILE *fp);
-
-uint64 _quick_match_startxref(FILE *fp, uint64 file_len_ptr)
-{
-	uint64 file_len = ftell(fp);
-	if (file_len_ptr == 0) {
-		fseek(fp, 0, SEEK_END);
-		file_len = ftell(fp);
-	} else {
-		file_len = file_len_ptr;
-	}
-	
-
-	if (file_len < 50) {
-		fseek(fp, 0, SEEK_SET);
-	} else {
-		fseek(fp, -50, SEEK_END);
-	}
-
-	int ch_int;
-	uchar ch;
-	int state = 0;
-	const char *startxref = "startxref";
-	uint64 startxref_start;
-
-	while (1) {
-		ch_int = fgetc(fp);
-		if (ch_int < 0) {
-			break;
-		}
-		ch = ch_int;
-		// printf("state=%d, ch=%c\n", state, ch);
-
-		switch (ch) {
-		case '\0':
-		case '\t':
-		case 12:
-		case ' ':
-		case '\r':
-		case '\n':
-			if (state == 9) {
-				state = 10;
-				break;
-			} else {
-				state = 1;
-			}
-			break;
-		default:
-			if (state == 0)
-				state = 0;
-			else if (state >= 1 && ch == startxref[state-1])
-				state++;
-			else
-			 	state = 0;
-		}
-		if (state == 10) {
-			break;
-		}
-	}
-	if (state != 10) {
-		perror("startxref not found!");
-		exit(0);
-	}
-
-	return ftell(fp);
-}
-
-void pindf_parser_file_parse(struct pindf_parser *parser, FILE *fp, uint64 file_len)
-{
-	// 0 - HEADER
-	// 1 - BODY
-	// 2 - XREF
-	// 3 - trailer
-	// 4 - end
-	int file_part_state = 0;
-
-	struct pindf_lexer *lexer = pindf_lexer_new();
-
-	int stream_state = 0;
-	int stream_len = 0;
-
-	int ret = -1;
-
-	uint64 xref_start;
-
-	struct pindf_token *token = NULL;
-
-	struct pindf_pdf_doc *doc = pindf_pdf_doc_new("PDF-1.7");
-
-	// first pass: quick read version and xref and trailer
-
-	// version
-	token = pindf_lex(lexer, fp);
-	if (token->event == PINDF_LEXER_EMIT_COMMENT) {
-		char *p = (char*)calloc(1, token->raw_str->len + 10);
-		memcpy(p, (char*)token->raw_str->p, token->raw_str->len);
-		p[token->raw_str->len] = '\0';
-		doc->pdf_version = p;
-	} else {
-		fprintf(stderr, "PDF Version not found! defaulted to %s", "PDF-1.7");
-	}
-
-	// startxref
-	uint64 startxref_start = _quick_match_startxref(fp, file_len);
-
-	while (1) {
-		token = pindf_lex(lexer, fp);
-		if (token->event == PINDF_LEXER_EMIT_REGULAR &&
-			token->reg_type == PINDF_LEXER_REGTYPE_INT
-		) {
-		xref_start = atoll((const char*)token->raw_str->p);
-			break;
-		} else if (token->event == PINDF_LEXER_EMIT_COMMENT ||
-			token->event == PINDF_LEXER_NO_EMIT ||
-			token->event == PINDF_LEXER_EMIT_WHITE_SPACE ||
-			token->event == PINDF_LEXER_EMIT_EOL
-		) {
-			continue;
-		} else {
-			perror("Invalid startref!");
-			exit(0);
-		}
-	}
-
-	printf("startref: %llu\n", xref_start);
-}
-
 void pindf_parser_destroy(void *parser)
 {
 	struct pindf_parser *parser_ = (struct pindf_parser *)parser;
 	pindf_vector_destroy(parser_->symbol_stack);
-	pindf_vector_destroy(parser_->dict_state_stack);
 	pindf_vector_destroy(parser_->reduce_pos_stack);
 }

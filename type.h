@@ -1,3 +1,5 @@
+#include <assert.h>
+
 typedef unsigned char uchar;
 typedef unsigned int uint;
 typedef long long int64;
