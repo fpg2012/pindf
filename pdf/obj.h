@@ -29,10 +29,6 @@ typedef struct {
 	pindf_vector *values; // vector of obj
 } pindf_pdf_dict;
 
-typedef struct  {
-	pindf_vector *items;
-} pindf_pdf_array;
-
 typedef struct {
 	pindf_pdf_obj *dict;
 	pindf_uchar_str *stream_content;
@@ -61,9 +57,9 @@ struct pindf_pdf_obj {
 		pindf_uchar_str *name;
 		pindf_uchar_str *hex_str;
 		pindf_uchar_str *ltr_str;
+		pindf_vector *array;
 
 		pindf_pdf_dict dict;
-		pindf_pdf_array array;
 
 		pindf_pdf_stream stream;
 

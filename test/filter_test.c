@@ -69,7 +69,7 @@ int main(int argc, const char **argv)
 	// printf("obj_count: %d\n", obj_count);
 
 	// === count ===
-	printf("\n=== count ===\n");
+	printf("=== filters ===\n");
 	struct pindf_obj_entry entry;
 	pindf_pdf_obj *obj = NULL;
 	pindf_uchar_str *filter_key = pindf_uchar_str_from_cstr("/Filter", strlen("/Filter"));
@@ -86,12 +86,24 @@ int main(int argc, const char **argv)
 			continue;
 		}
 
-		if (obj->obj_type != PINDF_PDF_NAME) {
+		if (obj->obj_type == PINDF_PDF_NAME) {
+			printf("/Filter %s\n", obj->content.name->p);
+		} else if (obj->obj_type == PINDF_PDF_ARRAY) {
+			printf("/Filter [");
+			pindf_pdf_obj *inner_obj = NULL;
+			for (int i = 0; i < obj->content.array->len; ++i) {
+				pindf_vector_index(obj->content.array, i, &inner_obj);
+				if (inner_obj->obj_type != PINDF_PDF_NAME) {
+					goto error;
+				}
+				printf("%s,", inner_obj->content.name->p);
+			}
+			printf("]\n");
+		} else {
+			error: 
 			fprintf(stderr, "[error] filter not map to name! %d\n", obj->obj_type);
 			exit(0);
 		}
-
-		printf("/Filter %s\n", obj->content.name->p);
 	}
 	
 	return 0;

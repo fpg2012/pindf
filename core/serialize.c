@@ -35,7 +35,7 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 	case PINDF_PDF_ARRAY: {
 		p += snprintf(p, BUF_REMAIN, "[");
 
-		pindf_vector *vec = obj->content.array.items;
+		pindf_vector *vec = obj->content.array;
 		size_t len = vec->len;
 
 		for (int i = 0; i < len; ++i) {
@@ -164,7 +164,7 @@ char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 	case PINDF_PDF_ARRAY: {
 		p += snprintf(p, BUF_REMAIN, "[ ");
 
-		pindf_vector *vec = obj->content.array.items;
+		pindf_vector *vec = obj->content.array;
 		size_t len = vec->len;
 
 		for (int i = 0; i < len; ++i) {

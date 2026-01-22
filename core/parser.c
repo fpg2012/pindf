@@ -80,7 +80,7 @@ int _reduce_array(pindf_parser *parser)
 	POP_EVERYTHING();
 
 	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_ARRAY);
-	obj->content.array.items = vec;
+	obj->content.array = vec;
 
 	symbol = pindf_symbol_new_nonterm(obj, offset);
 	pindf_vector_append(parser->symbol_stack, &symbol);
