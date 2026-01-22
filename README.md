@@ -16,7 +16,7 @@ make
 Find some pdf, and run the following command to print the result of lexical analysis.
 
 ```
-./lexer_test [your_pdf_file]
+./test/lexer_test [your_pdf_file]
 ```
 
 ### parser
@@ -24,5 +24,5 @@ Find some pdf, and run the following command to print the result of lexical anal
 Convert the pdf structure to a json file.
 
 ```
-./parser_test [your_pdf_file]
+./test/parser_test [your_pdf_file]
 ```

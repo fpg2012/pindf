@@ -2,14 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/parser.h"
-#include "core/lexer.h"
-#include "core/serialize.h"
-#include "pdf/doc.h"
-#include "pdf/obj.h"
-#include "container/simple_vector.h"
-#include "container/uchar_str.h"
-#include "file_parse.h"
+#include "../pindf.h"
 
 
 int main(int argc, const char **argv)
