@@ -121,6 +121,14 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 		p = pindf_pdf_obj_serialize_json(obj->content.stream.dict, p, BUF_REMAIN);
 		p += snprintf(p, BUF_REMAIN, ",\"len\": \"%lu\"", obj->content.stream.stream_content->len);
 		p += snprintf(p, BUF_REMAIN, "}");
+		break;
+	case PINDF_PDF_NULL:
+		p += snprintf(p, BUF_REMAIN, "null");
+		break;
+	case PINDF_PDF_BOOL:
+		p += snprintf(p, BUF_REMAIN, "%s", obj->content.boolean ? "true" : "false");
+	default:
+		fprintf(stderr, "[error] invalid obj type");
 	}
 	return p;
 }
@@ -207,6 +215,14 @@ char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 		p += obj->content.stream.stream_content->len;
 		
 		p += snprintf(p, BUF_REMAIN, "\r\nendstream");
+		break;
+	case PINDF_PDF_NULL:
+		p += snprintf(p, BUF_REMAIN, "null");
+		break;
+	case PINDF_PDF_BOOL:
+		p += snprintf(p, BUF_REMAIN, "%s", obj->content.boolean ? "true" : "false");
+	default:
+		fprintf(stderr, "[error] invalid obj type");
 	}
 
 	return p;

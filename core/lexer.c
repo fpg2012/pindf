@@ -291,6 +291,8 @@ pindf_token *pindf_token_new(int event, pindf_uchar_str *raw_str, uint64 offset)
 	token->event = event;
 	token->raw_str = raw_str;
 	token->offset = offset;
+	token->kwd = 0;
+	token->reg_type = 0;
 	return token;
 }
 
@@ -301,8 +303,8 @@ void pindf_token_regular_lex(pindf_token *token) {
 	uchar *beg = token->raw_str->p;
 	uchar *end = token->raw_str->p + token->raw_str->len;
 
-	int reg_type = PINDF_LEXER_REGTYPE_NORM;
-	int kwd_type = PINDF_KWD_UNK;
+	enum pindf_lexer_regtype reg_type = PINDF_LEXER_REGTYPE_NORM;
+	enum pindf_kwd kwd_type = PINDF_KWD_UNK;
 
 	if (beg == end) {
 		return;

@@ -8,66 +8,78 @@
 #include "../type.h"
 #include "../container/uchar_str.h"
 
-#define PINDF_LEXER_STATE_DEFAULT		0
-#define PINDF_LEXER_STATE_REGULAR		1
-#define PINDF_LEXER_STATE_WHITE_SPACE		2
-#define PINDF_LEXER_STATE_DELIM			3
-#define PINDF_LEXER_STATE_IN_LTR_STR		4
-#define PINDF_LEXER_STATE_IN_STREAM		5
-#define PINDF_LEXER_STATE_IN_LTR_STR_ESC	6
-#define PINDF_LEXER_STATE_IN_EOL		7
-#define PINDF_LEXER_STATE_IN_HEX_STR		8
-#define PINDF_LEXER_STATE_OUT_STREAM		9
-#define PINDF_LEXER_STATE_OUT_EOL		10
-#define PINDF_LEXER_STATE_IN_COMMENT		11
-#define PINDF_LEXER_STATE_IN_NAME		12
-#define PINDF_LEXER_STATE_ERR			-1
-
 #define PINDF_LEXER_BUFSIZE 32768
 
-#define PINDF_LEXER_NO_EMIT			0
-#define PINDF_LEXER_EMIT_REGULAR 		1
-#define PINDF_LEXER_EMIT_DELIM			2
-#define PINDF_LEXER_EMIT_LTR_STR		3
-#define PINDF_LEXER_EMIT_HEX_STR		4
-#define PINDF_LEXER_EMIT_EOL			5
-#define PINDF_LEXER_EMIT_NAME			6
-#define PINDF_LEXER_EMIT_WHITE_SPACE		10
-#define PINDF_LEXER_EMIT_COMMENT		11
-#define PINDF_LEXER_EMIT_ERR			-2
-#define PINDF_LEXER_EMIT_EOF			-1
+enum pindf_lexer_state {
+	PINDF_LEXER_STATE_DEFAULT = 0,
+	PINDF_LEXER_STATE_REGULAR,
+	PINDF_LEXER_STATE_WHITE_SPACE,
+	PINDF_LEXER_STATE_DELIM,
+	PINDF_LEXER_STATE_IN_LTR_STR,
+	PINDF_LEXER_STATE_IN_STREAM,
+	PINDF_LEXER_STATE_IN_LTR_STR_ESC,
+	PINDF_LEXER_STATE_IN_EOL,
+	PINDF_LEXER_STATE_IN_HEX_STR,
+	PINDF_LEXER_STATE_OUT_STREAM,
+	PINDF_LEXER_STATE_OUT_EOL,
+	PINDF_LEXER_STATE_IN_COMMENT,
+	PINDF_LEXER_STATE_IN_NAME,
+	PINDF_LEXER_STATE_ERR = -1,
+};
 
-#define PINDF_LEXER_REGTYPE_NORM	0
-#define PINDF_LEXER_REGTYPE_KWD		1
-#define PINDF_LEXER_REGTYPE_INT		1000
-#define PINDF_LEXER_REGTYPE_REAL	1001
+enum pindf_lexer_event {
+	PINDF_LEXER_NO_EMIT = 0,
+	PINDF_LEXER_EMIT_REGULAR,
+	PINDF_LEXER_EMIT_DELIM,
+	PINDF_LEXER_EMIT_LTR_STR,
+	PINDF_LEXER_EMIT_HEX_STR,
+	PINDF_LEXER_EMIT_EOL,
+	PINDF_LEXER_EMIT_NAME,	
+	PINDF_LEXER_EMIT_WHITE_SPACE = 10,
+	PINDF_LEXER_EMIT_COMMENT,
+	PINDF_LEXER_EMIT_ERR = -2,
+	PINDF_LEXER_EMIT_EOF = -1,
+};
 
-#define PINDF_KWD_UNK		0
-#define PINDF_KWD_endobj	1
-#define PINDF_KWD_endstream	2
-#define PINDF_KWD_f		3
-#define PINDF_KWD_false		4
-#define PINDF_KWD_n		5
-#define PINDF_KWD_null		6
-#define PINDF_KWD_obj		7
-#define PINDF_KWD_R		8
-#define PINDF_KWD_startxref	9
-#define PINDF_KWD_stream	10
-#define PINDF_KWD_trailer	11
-#define PINDF_KWD_true		12
-#define PINDF_KWD_xref		13
-#define PINDF_KWD_END		14
 
-#define PINDF_LEXER_OPT_IGNORE_WS	1
-#define PINDF_LEXER_OPT_IGNORE_EOL	2
-#define PINDF_LEXER_OPT_IGNORE_CMT	4
-#define PINDF_LEXER_OPT_IGNORE_NO_EMIT	8
+enum pindf_lexer_regtype {
+	PINDF_LEXER_REGTYPE_UNK = 0,
+	PINDF_LEXER_REGTYPE_NORM,
+	PINDF_LEXER_REGTYPE_KWD,
+	PINDF_LEXER_REGTYPE_INT = 1000,
+	PINDF_LEXER_REGTYPE_REAL = 1001,
+};
+
+enum pindf_kwd {
+	PINDF_KWD_UNK = 0,
+	PINDF_KWD_endobj,
+	PINDF_KWD_endstream,
+	PINDF_KWD_f,
+	PINDF_KWD_false,
+	PINDF_KWD_n,
+	PINDF_KWD_null,
+	PINDF_KWD_obj,
+	PINDF_KWD_R,
+	PINDF_KWD_startxref,
+	PINDF_KWD_stream,
+	PINDF_KWD_trailer,
+	PINDF_KWD_true,
+	PINDF_KWD_xref,
+	PINDF_KWD_END,
+};
+
+enum pindf_lexer_opt {
+	PINDF_LEXER_OPT_IGNORE_WS = 1,
+	PINDF_LEXER_OPT_IGNORE_EOL = 2,
+	PINDF_LEXER_OPT_IGNORE_CMT = 4,
+	PINDF_LEXER_OPT_IGNORE_NO_EMIT = 8,
+};
 
 extern const char *pindf_lexer_keyword_list[];
 
 typedef struct {
-	int state;
-	int prev_state;
+	enum pindf_lexer_state state;
+	enum pindf_lexer_state prev_state;
 	uchar buf[PINDF_LEXER_BUFSIZE];
 	size_t buf_end;
 	int string_level;
@@ -77,10 +89,10 @@ typedef struct {
 } pindf_lexer;
 
 typedef struct {
-	int event;
+	enum pindf_lexer_event event;
 	pindf_uchar_str *raw_str;
-	int reg_type; 	// only meaningful if event=regular
-	int kwd; 	// only meaningful if reg_type=kwd
+	enum pindf_lexer_regtype reg_type; 	// only meaningful if event=regular
+	enum pindf_kwd kwd; 	// only meaningful if reg_type=kwd
 	uint64 offset;
 } pindf_token;
 

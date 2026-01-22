@@ -7,17 +7,21 @@
 #include "../pdf/obj.h"
 #include "../pdf/doc.h"
 
-#define PINDF_SYMBOL_TERM	0
-#define PINDF_SYMBOL_NONTERM	1
+enum pindf_symbol_type {
+	PINDF_SYMBOL_TERM,
+	PINDF_SYMBOL_NONTERM
+};
 
-#define PINDF_FILE_PART_HEADER	0
-#define PINDF_FILE_PART_BODY	1
-#define PINDF_FILE_PART_XREF	2
-#define PINDF_FILE_PART_TRAILER	3
-#define PINDF_FILE_PART_S_XREF	4
+enum pindf_file_part {
+	PINDF_FILE_PART_HEADER,
+	PINDF_FILE_PART_BODY,
+	PINDF_FILE_PART_XREF,
+	PINDF_FILE_PART_TRAILER,
+	PINDF_FILE_PART_S_XREF,
+};
 
 typedef struct {
-	int type; // 0 - term, 1 - non_term
+	enum pindf_symbol_type type; // 0 - term, 1 - non_term
 	uint64 offset;
 	union {
 		pindf_token *term;

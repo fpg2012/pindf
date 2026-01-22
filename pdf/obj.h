@@ -6,19 +6,21 @@
 #include "../container/uchar_str.h"
 #include "../container/simple_vector.h"
 
-#define PINDF_PDF_OBJ	0
-#define PINDF_PDF_INT	1
-#define PINDF_PDF_REAL	2
-#define PINDF_PDF_DICT	3
-#define PINDF_PDF_ARRAY	4
-#define PINDF_PDF_LTR_STR	5
-#define PINDF_PDF_HEX_STR	6
-#define PINDF_PDF_BOOL	7
-#define PINDF_PDF_STREAM	8
-#define PINDF_PDF_NAME	9
-#define PINDF_PDF_NULL	10
-#define PINDF_PDF_REF	11
-#define PINDF_PDF_IND_OBJ	12
+enum pindf_pdf_obj_type {
+	PINDF_PDF_OBJ,
+	PINDF_PDF_INT,
+	PINDF_PDF_REAL,
+	PINDF_PDF_DICT,
+	PINDF_PDF_ARRAY,
+	PINDF_PDF_LTR_STR,
+	PINDF_PDF_HEX_STR,
+	PINDF_PDF_BOOL,
+	PINDF_PDF_STREAM,
+	PINDF_PDF_NAME,	
+	PINDF_PDF_NULL,	
+	PINDF_PDF_REF,
+	PINDF_PDF_IND_OBJ,
+};
 
 typedef struct pindf_pdf_obj pindf_pdf_obj;
 
@@ -49,7 +51,7 @@ typedef struct {
 } pindf_pdf_ref;
 
 struct pindf_pdf_obj {
-	int obj_type;
+	enum pindf_pdf_obj_type obj_type;
 	union {
 		int boolean;
 		int num;
@@ -69,5 +71,5 @@ struct pindf_pdf_obj {
 	} content;
 };
 
-pindf_pdf_obj *pindf_pdf_obj_new(int type);
+pindf_pdf_obj *pindf_pdf_obj_new(enum pindf_pdf_obj_type type);
 pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, pindf_uchar_str *key);
