@@ -12,14 +12,14 @@ int main(int argc, const char **argv)
 		fprintf(stderr, "Usage:\n\t %s [filename]", argv[0]);
 		exit(0);
 	}
-	struct pindf_lexer *lexer = pindf_lexer_new();
+	pindf_lexer *lexer = pindf_lexer_new();
 
 	FILE *f = fopen(argv[1], "r");
 
 	int stream_state = 0;
 	int stream_len = 0;
 
-	struct pindf_token *token = NULL;
+	pindf_token *token = NULL;
 	do {
 		token = pindf_lex(lexer, f);
 		switch (token->event) {
@@ -88,7 +88,7 @@ int main(int argc, const char **argv)
 			}
 		} else if (stream_state == 3) {
 			if (token->event == PINDF_LEXER_EMIT_EOL) {
-				struct pindf_uchar_str *str;
+				pindf_uchar_str *str;
 				str = pindf_lex_get_stream(f, stream_len);
 				pindf_uchar_str_destroy(str);
 				printf("\033[4;33m<stream:%d>\033[0m", stream_len);

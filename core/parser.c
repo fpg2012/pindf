@@ -5,9 +5,9 @@
 #define REDUCE_SINGLE_OBJ(type_low, type_upper, parsed_content) \
 	do { \
 		ASSERT_EMPTY_STACK(); \
-		struct pindf_symbol *symbol = NULL; \
+		pindf_symbol *symbol = NULL; \
 		pindf_vector_last_elem(parser->symbol_stack, &symbol); \
-		struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_##type_upper); \
+		pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_##type_upper); \
 		obj->content.type_low = (parsed_content); \
 		symbol->type = PINDF_SYMBOL_NONTERM; \
 		symbol->content.non_term = obj; \
@@ -48,25 +48,25 @@
 		} \
 	} while (0)
 
-void _update_reduce_pos(struct pindf_parser *parser)
+void _update_reduce_pos(pindf_parser *parser)
 {
 	pindf_vector_append(parser->reduce_pos_stack, &parser->reduce_pos);
 	parser->reduce_pos = parser->symbol_stack->len-1;
 }
 
-void _restore_reduce_pos(struct pindf_parser *parser)
+void _restore_reduce_pos(pindf_parser *parser)
 {
 	pindf_vector_pop(parser->reduce_pos_stack, &parser->reduce_pos);
 }
 
 // reduce functions group terms to a non_term
-int _reduce_array(struct pindf_parser *parser)
+int _reduce_array(pindf_parser *parser)
 {
 	size_t beg = parser->reduce_pos, p = beg;
 	size_t cap = parser->symbol_stack->len - beg;
-	struct pindf_vector *vec = pindf_vector_new(cap, sizeof(struct pindf_pdf_obj*), NULL);
+	pindf_vector *vec = pindf_vector_new(cap, sizeof(pindf_pdf_obj*), NULL);
 
-	struct pindf_symbol *symbol;
+	pindf_symbol *symbol;
 	MATCH_DELIM_OR_ERR("array", '[');
 	uint64 offset = symbol->offset;
 
@@ -79,7 +79,7 @@ int _reduce_array(struct pindf_parser *parser)
 
 	POP_EVERYTHING();
 
-	struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_ARRAY);
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_ARRAY);
 	obj->content.array.items = vec;
 
 	symbol = pindf_symbol_new_nonterm(obj, offset);
@@ -89,14 +89,14 @@ int _reduce_array(struct pindf_parser *parser)
 	return 0;
 }
 
-int _reduce_dict(struct pindf_parser *parser)
+int _reduce_dict(pindf_parser *parser)
 {
 	size_t beg = parser->reduce_pos, p = beg;
-	struct pindf_symbol *symbol;
+	pindf_symbol *symbol;
 
 	size_t cap = (parser->symbol_stack->len - beg) / 2 + 1;
-	struct pindf_vector *keys = pindf_vector_new(cap, sizeof(struct pindf_pdf_obj*), NULL);
-	struct pindf_vector *values = pindf_vector_new(cap, sizeof(struct pindf_pdf_obj*), NULL);
+	pindf_vector *keys = pindf_vector_new(cap, sizeof(pindf_pdf_obj*), NULL);
+	pindf_vector *values = pindf_vector_new(cap, sizeof(pindf_pdf_obj*), NULL);
 
 	MATCH_DELIM_OR_ERR("dict", '<');
 	uint64 offset = symbol->offset;
@@ -117,7 +117,7 @@ int _reduce_dict(struct pindf_parser *parser)
 
 	POP_EVERYTHING();
 
-	struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_DICT);
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_DICT);
 	obj->content.dict.keys = keys;
 	obj->content.dict.values = values;
 
@@ -128,11 +128,11 @@ int _reduce_dict(struct pindf_parser *parser)
 	return 0;
 }
 
-int _reduce_ref(struct pindf_parser *parser)
+int _reduce_ref(pindf_parser *parser)
 {
 	size_t beg = parser->symbol_stack->len - 3, p = beg;
-	struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_REF);
-	struct pindf_symbol *symbol;
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_REF);
+	pindf_symbol *symbol;
 	int ab[2];
 	for (int i = 0; i < 2; ++i, ++p) {
 		pindf_vector_index(parser->symbol_stack, p, &symbol);
@@ -151,10 +151,10 @@ int _reduce_ref(struct pindf_parser *parser)
 	return 0;
 }
 
-int _reduce_ind_obj(struct pindf_parser *parser)
+int _reduce_ind_obj(pindf_parser *parser)
 {
-	struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_IND_OBJ);
-	struct pindf_symbol *symbol;
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_IND_OBJ);
+	pindf_symbol *symbol;
 	int ab[2];
 
 	size_t beg = parser->symbol_stack->len - 5;
@@ -190,18 +190,18 @@ int _reduce_ind_obj(struct pindf_parser *parser)
 	return 0;
 }
 
-int _reduce_int(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(num, PDF_INT, atoi((const char*)symbol->content.term->raw_str->p)); }
-int _reduce_real(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(real_num, PDF_REAL, atof((const char*)symbol->content.term->raw_str->p)); }
-int _reduce_null(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(num, PDF_NULL, 0); }
-int _reduce_bool(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(boolean, PDF_BOOL, strcmp("true", (const char*)symbol->content.term->raw_str->p) == 0 ? 1 : 0); }
-int _reduce_name(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(name, PDF_NAME, symbol->content.term->raw_str); }
-int _reduce_ltr_str(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(ltr_str, PDF_LTR_STR, symbol->content.term->raw_str); }
-int _reduce_hex_str(struct pindf_parser *parser) { REDUCE_SINGLE_OBJ(hex_str, PDF_LTR_STR, symbol->content.term->raw_str); } // maybe we should convert the raw_str here
+int _reduce_int(pindf_parser *parser) { REDUCE_SINGLE_OBJ(num, PDF_INT, atoi((const char*)symbol->content.term->raw_str->p)); }
+int _reduce_real(pindf_parser *parser) { REDUCE_SINGLE_OBJ(real_num, PDF_REAL, atof((const char*)symbol->content.term->raw_str->p)); }
+int _reduce_null(pindf_parser *parser) { REDUCE_SINGLE_OBJ(num, PDF_NULL, 0); }
+int _reduce_bool(pindf_parser *parser) { REDUCE_SINGLE_OBJ(boolean, PDF_BOOL, strcmp("true", (const char*)symbol->content.term->raw_str->p) == 0 ? 1 : 0); }
+int _reduce_name(pindf_parser *parser) { REDUCE_SINGLE_OBJ(name, PDF_NAME, symbol->content.term->raw_str); }
+int _reduce_ltr_str(pindf_parser *parser) { REDUCE_SINGLE_OBJ(ltr_str, PDF_LTR_STR, symbol->content.term->raw_str); }
+int _reduce_hex_str(pindf_parser *parser) { REDUCE_SINGLE_OBJ(hex_str, PDF_LTR_STR, symbol->content.term->raw_str); } // maybe we should convert the raw_str here
 
-int pindf_parser_add_stream(struct pindf_parser *parser, struct pindf_uchar_str *stream)
+int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream)
 {
 
-	struct pindf_symbol *symbol = NULL;
+	pindf_symbol *symbol = NULL;
 
 	if (parser->symbol_stack->len == 0) {
 		perror("stream dict not found!");
@@ -216,7 +216,7 @@ int pindf_parser_add_stream(struct pindf_parser *parser, struct pindf_uchar_str 
 		return -1;
 	}
 
-	struct pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_STREAM);
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_STREAM);
 	obj->content.stream.dict = symbol->content.non_term;
 	obj->content.stream.stream_content = stream;
 
@@ -225,28 +225,28 @@ int pindf_parser_add_stream(struct pindf_parser *parser, struct pindf_uchar_str 
 	return 0;
 }
 
-struct pindf_symbol *pindf_symbol_new_term(struct pindf_token *token)
+pindf_symbol *pindf_symbol_new_term(pindf_token *token)
 {
-	struct pindf_symbol *sym = (struct pindf_symbol*)malloc(sizeof(struct pindf_symbol));
+	pindf_symbol *sym = (pindf_symbol*)malloc(sizeof(pindf_symbol));
 	sym->type = PINDF_SYMBOL_TERM;
 	sym->content.term = token;
 	return sym;
 }
 
-struct pindf_symbol *pindf_symbol_new_nonterm(struct pindf_pdf_obj *pdf_obj, uint64 offset)
+pindf_symbol *pindf_symbol_new_nonterm(pindf_pdf_obj *pdf_obj, uint64 offset)
 {
-	struct pindf_symbol *sym = (struct pindf_symbol *)malloc(sizeof(struct pindf_symbol));
+	pindf_symbol *sym = (pindf_symbol *)malloc(sizeof(pindf_symbol));
 	sym->type = PINDF_SYMBOL_NONTERM;
 	sym->content.non_term = pdf_obj;
 	sym->offset = offset;
 	return sym;
 }
 
-struct pindf_parser *pindf_parser_new()
+pindf_parser *pindf_parser_new()
 {
-	struct pindf_parser *parser = (struct pindf_parser*)malloc(sizeof(struct pindf_parser));
+	pindf_parser *parser = (pindf_parser*)malloc(sizeof(pindf_parser));
 	
-	parser->symbol_stack = pindf_vector_new(32768, sizeof(struct pindf_symbol*), NULL);
+	parser->symbol_stack = pindf_vector_new(32768, sizeof(pindf_symbol*), NULL);
 	parser->reduce_pos_stack = pindf_vector_new(1024, sizeof(int), NULL);
 
 	// parser->file_part_state = 0;
@@ -256,19 +256,19 @@ struct pindf_parser *pindf_parser_new()
 	return parser;
 }
 
-void pindf_parser_init(struct pindf_parser *parser)
+void pindf_parser_init(pindf_parser *parser)
 {
 	parser->reduce_pos = 0;
 	parser->symbol_stack->len = 0;
 	parser->reduce_pos_stack->len = 0;
 }
 
-int pindf_parser_add_token(struct pindf_parser *parser, struct pindf_token *token)
+int pindf_parser_add_token(pindf_parser *parser, pindf_token *token)
 {
 	assert(token != NULL);
 
 	// append token
-	struct pindf_symbol *symbol = pindf_symbol_new_term(token);
+	pindf_symbol *symbol = pindf_symbol_new_term(token);
 	pindf_vector_append(parser->symbol_stack, &symbol);
  
 	int ret = 0;
@@ -348,7 +348,7 @@ int pindf_parser_add_token(struct pindf_parser *parser, struct pindf_token *toke
 
 void pindf_parser_destroy(void *parser)
 {
-	struct pindf_parser *parser_ = (struct pindf_parser *)parser;
+	pindf_parser *parser_ = (pindf_parser *)parser;
 	pindf_vector_destroy(parser_->symbol_stack);
 	pindf_vector_destroy(parser_->reduce_pos_stack);
 }

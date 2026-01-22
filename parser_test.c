@@ -19,8 +19,8 @@ int main(int argc, const char **argv)
 		fprintf(stderr, "Usage:\n\t %s [filename]", argv[0]);
 		exit(0);
 	}
-	struct pindf_lexer *lexer = pindf_lexer_new();
-	struct pindf_parser *parser = pindf_parser_new();
+	pindf_lexer *lexer = pindf_lexer_new();
+	pindf_parser *parser = pindf_parser_new();
 
 	FILE *f = fopen(argv[1], "r");
 
@@ -29,8 +29,8 @@ int main(int argc, const char **argv)
 
 	int ret = -1;
 
-	struct pindf_token *token = NULL;
-	struct pindf_doc *doc = NULL;
+	pindf_token *token = NULL;
+	pindf_doc *doc = NULL;
 
 	uint64 file_len = 0;
 
@@ -60,7 +60,7 @@ int main(int argc, const char **argv)
 	
 	int obj_count = 0;
 	while (1) {
-		struct pindf_pdf_obj *obj = NULL;
+		pindf_pdf_obj *obj = NULL;
 		ret = pindf_parse_one_obj(parser, lexer, f, &obj, &obj_offset, PINDF_PDF_IND_OBJ);
 		if (ret == -3) {
 			break;

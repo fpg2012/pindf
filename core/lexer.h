@@ -65,7 +65,7 @@
 
 extern const char *pindf_lexer_keyword_list[];
 
-struct pindf_lexer {
+typedef struct {
 	int state;
 	int prev_state;
 	uchar buf[PINDF_LEXER_BUFSIZE];
@@ -74,22 +74,22 @@ struct pindf_lexer {
 
 	uint64 token_offset;
 	uint64 offset;
-};
+} pindf_lexer;
 
-struct pindf_token {
+typedef struct {
 	int event;
-	struct pindf_uchar_str *raw_str;
+	pindf_uchar_str *raw_str;
 	int reg_type; 	// only meaningful if event=regular
 	int kwd; 	// only meaningful if reg_type=kwd
 	uint64 offset;
-};
+} pindf_token;
 
 
-struct pindf_lexer *pindf_lexer_new();
-void pindf_lexer_init(struct pindf_lexer *lexer);
-struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file);
-struct pindf_token *pindf_lex_options(struct pindf_lexer *lexer, FILE *file, uint options);
-struct pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
+pindf_lexer *pindf_lexer_new();
+void pindf_lexer_init(pindf_lexer *lexer);
+pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file);
+pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options);
+pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
 
-struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str, uint64 offset);
-void pindf_token_regular_lex(struct pindf_token *token);
+pindf_token *pindf_token_new(int event, pindf_uchar_str *raw_str, uint64 offset);
+void pindf_token_regular_lex(pindf_token *token);

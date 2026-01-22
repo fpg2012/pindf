@@ -20,37 +20,33 @@
 #define PINDF_PDF_REF	11
 #define PINDF_PDF_IND_OBJ	12
 
-struct pindf_pdf_obj;
-struct pindf_pdf_dict;
-struct pindf_pdf_array;
-struct pindf_stream;
-struct pindf_pdf_ind_obj;
+typedef struct pindf_pdf_obj pindf_pdf_obj;
 
-struct pindf_pdf_dict {
-	struct pindf_vector *keys; // vector of name obj
-	struct pindf_vector *values; // vector of obj
-};
+typedef struct {
+	pindf_vector *keys; // vector of name obj
+	pindf_vector *values; // vector of obj
+} pindf_pdf_dict;
 
-struct pindf_pdf_array {
-	struct pindf_vector *items;
-};
+typedef struct  {
+	pindf_vector *items;
+} pindf_pdf_array;
 
-struct pindf_pdf_stream {
-	struct pindf_pdf_obj *dict;
-	struct pindf_uchar_str *stream_content;
-};
+typedef struct {
+	pindf_pdf_obj *dict;
+	pindf_uchar_str *stream_content;
+} pindf_pdf_stream;
 
-struct pindf_pdf_ind_obj {
+typedef struct {
 	int obj_num;
 	int generation_num;
-	struct pindf_pdf_obj *obj;
+	pindf_pdf_obj *obj;
 	size_t start_pos;
-};
+} pindf_pdf_ind_obj;
 
-struct pindf_pdf_ref {
+typedef struct {
 	int obj_num;
 	int generation_num;
-};
+} pindf_pdf_ref;
 
 struct pindf_pdf_obj {
 	int obj_type;
@@ -58,19 +54,19 @@ struct pindf_pdf_obj {
 		int boolean;
 		int num;
 		double real_num;
-		struct pindf_pdf_ref ref;
+		pindf_pdf_ref ref;
 
-		struct pindf_uchar_str *name;
-		struct pindf_uchar_str *hex_str;
-		struct pindf_uchar_str *ltr_str;
+		pindf_uchar_str *name;
+		pindf_uchar_str *hex_str;
+		pindf_uchar_str *ltr_str;
 
-		struct pindf_pdf_dict dict;
-		struct pindf_pdf_array array;
+		pindf_pdf_dict dict;
+		pindf_pdf_array array;
 
-		struct pindf_pdf_stream stream;
+		pindf_pdf_stream stream;
 
-		struct pindf_pdf_ind_obj indirect_obj;
+		pindf_pdf_ind_obj indirect_obj;
 	} content;
 };
 
-struct pindf_pdf_obj *pindf_pdf_obj_new(int type);
+pindf_pdf_obj *pindf_pdf_obj_new(int type);

@@ -2,19 +2,19 @@
 
 #define BUF_REMAIN (buf_size-(p-buf))
 
-char *pindf_pdf_obj_serialize_json(struct pindf_pdf_obj *obj, char *buf, size_t buf_size)
+char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 {
-	struct pindf_uchar_str *str = NULL;
+	pindf_uchar_str *str = NULL;
 	char *p = buf;
-	struct pindf_pdf_obj *temp_obj;
+	pindf_pdf_obj *temp_obj;
 
 	switch (obj->obj_type) {
 	case PINDF_PDF_DICT: {
 		p += snprintf(p, BUF_REMAIN, "{");
 
 		
-		struct pindf_vector *keys = obj->content.dict.keys;
-		struct pindf_vector *values = obj->content.dict.values;
+		pindf_vector *keys = obj->content.dict.keys;
+		pindf_vector *values = obj->content.dict.values;
 		size_t len = keys->len;
 		
 		for (int i = 0; i < len; ++i) {
@@ -35,7 +35,7 @@ char *pindf_pdf_obj_serialize_json(struct pindf_pdf_obj *obj, char *buf, size_t 
 	case PINDF_PDF_ARRAY: {
 		p += snprintf(p, BUF_REMAIN, "[");
 
-		struct pindf_vector *vec = obj->content.array.items;
+		pindf_vector *vec = obj->content.array.items;
 		size_t len = vec->len;
 
 		for (int i = 0; i < len; ++i) {
@@ -125,19 +125,19 @@ char *pindf_pdf_obj_serialize_json(struct pindf_pdf_obj *obj, char *buf, size_t 
 	return p;
 }
 
-char *pindf_pdf_obj_serialize(struct pindf_pdf_obj *obj, char *buf, size_t buf_size)
+char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 {
-	struct pindf_uchar_str *str = NULL;
+	pindf_uchar_str *str = NULL;
 	char *p = buf;
-	struct pindf_pdf_obj *temp_obj;
+	pindf_pdf_obj *temp_obj;
 
 	switch (obj->obj_type) {
 	case PINDF_PDF_DICT: {
 		p += snprintf(p, BUF_REMAIN, "<< ");
 
 		
-		struct pindf_vector *keys = obj->content.dict.keys;
-		struct pindf_vector *values = obj->content.dict.values;
+		pindf_vector *keys = obj->content.dict.keys;
+		pindf_vector *values = obj->content.dict.values;
 		size_t len = keys->len;
 		
 		for (int i = 0; i < len; ++i) {
@@ -156,7 +156,7 @@ char *pindf_pdf_obj_serialize(struct pindf_pdf_obj *obj, char *buf, size_t buf_s
 	case PINDF_PDF_ARRAY: {
 		p += snprintf(p, BUF_REMAIN, "[ ");
 
-		struct pindf_vector *vec = obj->content.array.items;
+		pindf_vector *vec = obj->content.array.items;
 		size_t len = vec->len;
 
 		for (int i = 0; i < len; ++i) {
@@ -212,7 +212,7 @@ char *pindf_pdf_obj_serialize(struct pindf_pdf_obj *obj, char *buf, size_t buf_s
 	return p;
 }
 
-char *pindf_doc_serialize_json(struct pindf_doc *doc, char *buf, size_t buf_size)
+char *pindf_doc_serialize_json(pindf_doc *doc, char *buf, size_t buf_size)
 {
 	char *p = buf;
 	p += snprintf(p, BUF_REMAIN, "{\"version\": \"%s\", \"xref_offset\": %d, \"obj_list\": [\n", doc->pdf_version, doc->xref_offset);

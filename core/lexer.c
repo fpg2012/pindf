@@ -36,7 +36,7 @@ static int _prev_state_emit[] = {
 };
 
 
-void _append_ch(struct pindf_lexer *lexer, char ch)
+void _append_ch(pindf_lexer *lexer, char ch)
 {
 	if (lexer->buf_end == PINDF_LEXER_BUFSIZE) {
 		perror("lexer buffer overflow!");
@@ -49,7 +49,7 @@ void _append_ch(struct pindf_lexer *lexer, char ch)
 	lexer->buf[lexer->buf_end++] = ch;
 }
 
-int _last_char(struct pindf_lexer *lexer, uchar *ch)
+int _last_char(pindf_lexer *lexer, uchar *ch)
 {
 	if (lexer->buf_end == 0) {
 		return -1;
@@ -58,9 +58,9 @@ int _last_char(struct pindf_lexer *lexer, uchar *ch)
 	return 0;
 }
 
-struct pindf_uchar_str *_emit(struct pindf_lexer *lexer)
+pindf_uchar_str *_emit(pindf_lexer *lexer)
 {
-	struct pindf_uchar_str *emit_str = pindf_uchar_str_new();
+	pindf_uchar_str *emit_str = pindf_uchar_str_new();
 	pindf_uchar_str_init(emit_str, lexer->buf_end);
 
 	memcpy(emit_str->p, lexer->buf, lexer->buf_end);
@@ -71,14 +71,14 @@ struct pindf_uchar_str *_emit(struct pindf_lexer *lexer)
 	return emit_str;
 }
 
-struct pindf_lexer *pindf_lexer_new() {
-	struct pindf_lexer *lexer = (struct pindf_lexer*)malloc(sizeof(struct pindf_lexer));
+pindf_lexer *pindf_lexer_new() {
+	pindf_lexer *lexer = (pindf_lexer*)malloc(sizeof(pindf_lexer));
 	pindf_lexer_init(lexer);
 
 	return lexer;
 }
 
-void pindf_lexer_init(struct pindf_lexer *lexer)
+void pindf_lexer_init(pindf_lexer *lexer)
 {
 	lexer->state = PINDF_LEXER_STATE_DEFAULT;
 	memset(lexer->buf, 0x00, PINDF_LEXER_BUFSIZE);
@@ -86,9 +86,9 @@ void pindf_lexer_init(struct pindf_lexer *lexer)
 	lexer->string_level = 0;
 }
 
-struct pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len)
+pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len)
 {
-	struct pindf_uchar_str *str = pindf_uchar_str_new();
+	pindf_uchar_str *str = pindf_uchar_str_new();
 	pindf_uchar_str_init(str, len);
 
 	fread(str->p, len, 1, file);
@@ -96,11 +96,11 @@ struct pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len)
 	return str;
 }
 
-struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file)
+pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file)
 {
 	uchar ch;
 	int emit = 0;
-	struct pindf_uchar_str *emit_str = NULL;
+	pindf_uchar_str *emit_str = NULL;
 
 	while (!emit) {
 		lexer->prev_state = lexer->state;
@@ -279,22 +279,22 @@ struct pindf_token *pindf_lex(struct pindf_lexer *lexer, FILE *file)
 		}
 	}
 
-	struct pindf_token *token = pindf_token_new(emit, emit_str, lexer->token_offset);
+	pindf_token *token = pindf_token_new(emit, emit_str, lexer->token_offset);
 	if (emit == PINDF_LEXER_EMIT_REGULAR)
 		pindf_token_regular_lex(token);
 	return token;
 }
 
-struct pindf_token *pindf_token_new(int event, struct pindf_uchar_str *raw_str, uint64 offset)
+pindf_token *pindf_token_new(int event, pindf_uchar_str *raw_str, uint64 offset)
 {
-	struct pindf_token *token = (struct pindf_token*)malloc(sizeof(struct pindf_token));
+	pindf_token *token = (pindf_token*)malloc(sizeof(pindf_token));
 	token->event = event;
 	token->raw_str = raw_str;
 	token->offset = offset;
 	return token;
 }
 
-void pindf_token_regular_lex(struct pindf_token *token) {
+void pindf_token_regular_lex(pindf_token *token) {
 	assert(token->event == PINDF_LEXER_EMIT_REGULAR && "[regular lex] not regular token to parse");
 	assert(token->raw_str && "[regular lex] raw_str is NULL");
 
@@ -409,9 +409,9 @@ void pindf_token_regular_lex(struct pindf_token *token) {
 	token->reg_type = reg_type;
 }
 
-struct pindf_token *pindf_lex_options(struct pindf_lexer *lexer, FILE *file, uint options)
+pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options)
 {
-	struct pindf_token *token;
+	pindf_token *token;
 
 	uint ignore = 0;
 	do {

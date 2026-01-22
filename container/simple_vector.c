@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <assert.h>
 
-struct pindf_vector *pindf_vector_new(size_t capacity, size_t elem_size, pindf_destroy_func destroy_func)
+pindf_vector *pindf_vector_new(size_t capacity, size_t elem_size, pindf_destroy_func destroy_func)
 {
-	struct pindf_vector *vec = (struct pindf_vector *)malloc(sizeof(struct pindf_vector));
+	pindf_vector *vec = (pindf_vector *)malloc(sizeof(pindf_vector));
 	pindf_vector_init(vec, capacity, elem_size, destroy_func);
 	return vec;
 }
 
-void pindf_vector_init(struct pindf_vector *vec, size_t capacity, size_t elem_size, pindf_destroy_func destroy_func)
+void pindf_vector_init(pindf_vector *vec, size_t capacity, size_t elem_size, pindf_destroy_func destroy_func)
 {
 	vec->buf = (uchar*)calloc(capacity + 1, elem_size);
 	vec->len = 0;
@@ -19,7 +19,7 @@ void pindf_vector_init(struct pindf_vector *vec, size_t capacity, size_t elem_si
 	vec->destroy_func = destroy_func;
 }
 
-void pindf_vector_append(struct pindf_vector *vec, void *item)
+void pindf_vector_append(pindf_vector *vec, void *item)
 {
 	assert(item != NULL);
 
@@ -32,7 +32,7 @@ void pindf_vector_append(struct pindf_vector *vec, void *item)
 	vec->len++;
 }
 
-void pindf_vector_pop(struct pindf_vector *vec, void *item)
+void pindf_vector_pop(pindf_vector *vec, void *item)
 {
 	assert(vec->len > 0);
 	--vec->len;
@@ -44,7 +44,7 @@ void pindf_vector_pop(struct pindf_vector *vec, void *item)
 	}
 }
 
-void pindf_vector_destroy(struct pindf_vector *vec)
+void pindf_vector_destroy(pindf_vector *vec)
 {
 	void *end = vec->buf + vec->len*vec->elem_size;
 	for (void *p; p != end; p++) {
@@ -54,7 +54,7 @@ void pindf_vector_destroy(struct pindf_vector *vec)
 	free(vec);
 }
 
-void pindf_vector_last_elem(struct pindf_vector *vec, void *item)
+void pindf_vector_last_elem(pindf_vector *vec, void *item)
 {
 	assert(vec->len > 0);
 	assert(item != NULL);
@@ -62,7 +62,7 @@ void pindf_vector_last_elem(struct pindf_vector *vec, void *item)
 	memcpy(item, vec->buf + (vec->len - 1)*vec->elem_size, vec->elem_size);
 }
 
-void pindf_vector_index(struct pindf_vector *vec, size_t index, void *item)
+void pindf_vector_index(pindf_vector *vec, size_t index, void *item)
 {
 	assert(vec->len > 0);
 	assert(item != NULL);

@@ -29,15 +29,15 @@
 		} \
 	} while (0)
 
-int _parse_xref_table(struct pindf_parser *parser, struct pindf_lexer *lexer, FILE *fp, struct pindf_doc *doc)
+int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_doc *doc)
 {
-	struct pindf_token *token = NULL;
+	pindf_token *token = NULL;
 
 	uint64 result;
 
-	// struct pindf_xref_entry *enrtry = (struct pindf_xref_entry*)malloc(sizeof(struct pindf_xref_entry));
-	struct pindf_xref_table *table = NULL;
-	struct pindf_pdf_obj *trailer_obj = NULL;
+	// pindf_xref_entry *enrtry = (pindf_xref_entry*)malloc(sizeof(pindf_xref_entry));
+	pindf_xref_table *table = NULL;
+	pindf_pdf_obj *trailer_obj = NULL;
 
 	uint options = PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_NO_EMIT | PINDF_LEXER_OPT_IGNORE_WS;
 
@@ -103,7 +103,7 @@ int _parse_xref_table(struct pindf_parser *parser, struct pindf_lexer *lexer, FI
 	return 0;
 }
 
-int pindf_parse_xref(struct pindf_parser *parser, struct pindf_lexer *lexer, FILE *fp, struct pindf_doc *doc)
+int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_doc *doc)
 {	
 	// 0 - unk
 	// 1 - xref
@@ -112,7 +112,7 @@ int pindf_parse_xref(struct pindf_parser *parser, struct pindf_lexer *lexer, FIL
 
 	int ch_int;
 	uchar ch;
-	struct pindf_token *token;
+	pindf_token *token;
 	int ret = 0;
 	uint options = PINDF_LEXER_OPT_IGNORE_EOL | PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_WS | PINDF_LEXER_OPT_IGNORE_NO_EMIT;
 	do {
@@ -134,12 +134,12 @@ int pindf_parse_xref(struct pindf_parser *parser, struct pindf_lexer *lexer, FIL
 
 	if (stream_xref == 1) {
 		// xref table
-		struct pindf_xref_table *table = (struct pindf_xref_table*)malloc(sizeof(struct pindf_xref_table));
+		pindf_xref_table *table = (pindf_xref_table*)malloc(sizeof(pindf_xref_table));
 		ret = _parse_xref_table(parser, lexer, fp, doc);
 	} else {
 		// stream xref
 		pindf_parser_add_token(parser, token);
-		struct pindf_pdf_obj *obj = NULL;
+		pindf_pdf_obj *obj = NULL;
 		ret = pindf_parse_one_obj(parser, lexer, fp, &obj, NULL, PINDF_PDF_IND_OBJ);
 		if (ret < 0)
 			return ret;
@@ -215,7 +215,7 @@ uint64 pindf_quick_match_startxref(FILE *fp, uint64 file_len_ptr)
 	return ftell(fp);
 }
 
-int pindf_file_parse(struct pindf_parser *parser, FILE *fp, uint64 file_len, struct pindf_doc **ret_doc)
+int pindf_file_parse(pindf_parser *parser, FILE *fp, uint64 file_len, pindf_doc **ret_doc)
 {
 	assert(file_len != 0);
 	size_t cur_offset_fp = ftell(fp);
@@ -223,11 +223,11 @@ int pindf_file_parse(struct pindf_parser *parser, FILE *fp, uint64 file_len, str
 		fprintf(stderr, "[warning] file_parse not start from the beginning!");
 	}
 
-	struct pindf_doc *doc = pindf_doc_new("PDF-1.7");
+	pindf_doc *doc = pindf_doc_new("PDF-1.7");
 	uint64 xref_offset;
 
-	struct pindf_token *token = NULL;
-	struct pindf_lexer *lexer = pindf_lexer_new();
+	pindf_token *token = NULL;
+	pindf_lexer *lexer = pindf_lexer_new();
 	int ret = 0;
 
 	// version
@@ -271,11 +271,11 @@ int pindf_file_parse(struct pindf_parser *parser, FILE *fp, uint64 file_len, str
 	return 0;
 }
 
-int pindf_parse_one_obj(struct pindf_parser *parser, struct pindf_lexer *lexer, FILE *f, struct pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type)
+int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type)
 {
 	int stream_state = 0;
 	int stream_len = 0;
-	struct pindf_token *token = NULL;
+	pindf_token *token = NULL;
 
 	uint options = PINDF_LEXER_OPT_IGNORE_NO_EMIT | PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_WS | PINDF_LEXER_OPT_IGNORE_EOL;
 
@@ -311,7 +311,7 @@ int pindf_parse_one_obj(struct pindf_parser *parser, struct pindf_lexer *lexer, 
 			}
 
 			if (parser->symbol_stack->len == 1) {
-				struct pindf_symbol *symbol = NULL;
+				pindf_symbol *symbol = NULL;
 				pindf_vector_index(parser->symbol_stack, 0, &symbol);
 				if (symbol->type == PINDF_SYMBOL_NONTERM && symbol->content.non_term->obj_type == target_type) {
 					ret = 0;
@@ -342,7 +342,7 @@ int pindf_parse_one_obj(struct pindf_parser *parser, struct pindf_lexer *lexer, 
 					perror("no EOL follow stream keyword");
 					return -1;
 				}
-				struct pindf_uchar_str *stream = pindf_uchar_str_new();
+				pindf_uchar_str *stream = pindf_uchar_str_new();
 				pindf_uchar_str_init(stream, stream_len);
 				fread(stream->p, sizeof(uchar), stream_len, f);
 				ret = pindf_parser_add_stream(parser, stream);
