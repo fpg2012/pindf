@@ -24,9 +24,6 @@ int main(int argc, const char **argv)
 
 	FILE *f = fopen(argv[1], "r");
 
-	int stream_state = 0;
-	int stream_len = 0;
-
 	int ret = -1;
 
 	pindf_token *token = NULL;

@@ -70,3 +70,4 @@ struct pindf_pdf_obj {
 };
 
 pindf_pdf_obj *pindf_pdf_obj_new(int type);
+pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, pindf_uchar_str *key);
