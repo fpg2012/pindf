@@ -1,10 +1,4 @@
 #include "parser.h"
-#include "lexer.h"
-#include "pdf_obj.h"
-#include "simple_vector.h"
-#include "uchar_str.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 #define ASSERT_EMPTY_STACK() \
 	do { if (parser->symbol_stack->len == 0) { perror("empty stack!"); return -1; } } while(0)

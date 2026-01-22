@@ -1,8 +1,8 @@
 #pragma once
 
-#include "pdf_obj.h"
-#include "simple_vector.h"
-#include "uchar_str.h"
+#include "obj.h"
+#include "../container/simple_vector.h"
+#include "../container/uchar_str.h"
 
 struct pindf_xref_entry;
 struct pindf_xref_table;

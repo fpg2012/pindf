@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "parser.h"
-#include "lexer.h"
-#include "pdf_doc.h"
-#include "pdf_obj.h"
-#include "simple_vector.h"
-#include "uchar_str.h"
+#include "core/parser.h"
+#include "core/lexer.h"
+#include "core/serialize.h"
+#include "pdf/doc.h"
+#include "pdf/obj.h"
+#include "container/simple_vector.h"
+#include "container/uchar_str.h"
 #include "file_parse.h"
-#include "serialize.h"
 
 
 int main(int argc, const char **argv)
@@ -48,6 +48,7 @@ int main(int argc, const char **argv)
 	if (ret < 0) {
 		return -1;
 	}
+	printf("startxref: %d\n", doc->xref_offset);
 	
 	pindf_parser_init(parser);
 	pindf_lexer_init(lexer);

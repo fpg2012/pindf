@@ -1,12 +1,12 @@
 #pragma once
-
-#include "type.h"
-#include "uchar_str.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#include "../type.h"
+#include "../container/uchar_str.h"
 
 #define PINDF_LEXER_STATE_DEFAULT		0
 #define PINDF_LEXER_STATE_REGULAR		1

@@ -1,5 +1,4 @@
-#include "pdf_obj.h"
-#include <stdio.h>
+#include "obj.h"
 
 struct pindf_pdf_obj *pindf_pdf_obj_new(int obj_type)
 {

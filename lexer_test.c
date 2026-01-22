@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "lexer.h"
-#include "uchar_str.h"
+#include "core/lexer.h"
+#include "container/uchar_str.h"
 
 int main(int argc, const char **argv)
 {

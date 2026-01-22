@@ -1,11 +1,11 @@
 #pragma once
 
-#include "simple_vector.h"
-#include "lexer.h"
-#include "pdf_obj.h"
-#include "uchar_str.h"
-#include "pdf_doc.h"
 #include <stdlib.h>
+#include "../container/simple_vector.h"
+#include "../container/uchar_str.h"
+#include "lexer.h"
+#include "../pdf/obj.h"
+#include "../pdf/doc.h"
 
 #define PINDF_SYMBOL_TERM	0
 #define PINDF_SYMBOL_NONTERM	1

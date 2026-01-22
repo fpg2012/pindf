@@ -1,8 +1,4 @@
 #include "file_parse.h"
-#include "lexer.h"
-#include "parser.h"
-#include "pdf_obj.h"
-#include "uchar_str.h"
 
 #define MATCH_INT_TOKEN_OR_ERR(result, token) \
 	do { \

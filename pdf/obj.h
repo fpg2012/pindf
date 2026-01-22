@@ -2,9 +2,9 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "type.h"
-#include "uchar_str.h"
-#include "simple_vector.h"
+#include "../type.h"
+#include "../container/uchar_str.h"
+#include "../container/simple_vector.h"
 
 #define PINDF_PDF_OBJ	0
 #define PINDF_PDF_INT	1

@@ -1,8 +1,4 @@
 #include "serialize.h"
-#include "pdf_doc.h"
-#include "pdf_obj.h"
-#include "simple_vector.h"
-#include <stdio.h>
 
 #define BUF_REMAIN (buf_size-(p-buf))
 

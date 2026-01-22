@@ -1,5 +1,4 @@
 #include "lexer.h"
-#include "uchar_str.h"
 
 const char *pindf_lexer_keyword_list[] = {
 	"",

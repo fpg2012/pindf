@@ -1,6 +1,4 @@
-#include "pdf_doc.h"
-#include "pdf_obj.h"
-#include "simple_vector.h"
+#include "doc.h"
 
 struct pindf_doc *pindf_doc_new(const char *default_version)
 {
