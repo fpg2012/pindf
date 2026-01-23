@@ -33,18 +33,19 @@ typedef struct {
 	pindf_vector *ind_obj_list; // array of ind_obj_entry
 	int xref_offset;
 
-	pindf_pdf_obj *trailer;
-	pindf_xref_table *xref;
+	pindf_pdf_dict trailer;
+	pindf_xref_table xref;
 
-	pindf_pdf_obj *xref_stream;
+	// pindf_pdf_obj *xref_stream;
 
 	FILE *fp;
 } pindf_doc;
 
-pindf_doc *pindf_doc_new(const char *default_version);
-pindf_xref_table *pindf_xref_table_new(size_t obj_num, size_t len);
+pindf_doc *pindf_doc_new(const char *default_version, FILE *fp);
+void pindf_xref_table_init(pindf_xref_table *table, size_t obj_num, size_t len);
 void pindf_xref_table_setentry(pindf_xref_table *table, uint index, uint64 offset, uint gen, int nf);
 pindf_xref_entry *pindf_xref_table_getentry(pindf_xref_table *table, uint index);
 
 void pindf_doc_obj_setentry(pindf_doc *doc, pindf_pdf_obj *obj, uint64 offset);
-pindf_pdf_obj *pindf_doc_obj_getentry(pindf_doc *doc, uint64 obj_num);
+pindf_pdf_obj *pindf_doc_obj_getentry(pindf_doc *doc, uint64 obj_num, uint64 *offset);
+pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, uint64 obj_num);

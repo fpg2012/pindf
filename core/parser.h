@@ -39,7 +39,7 @@ typedef struct {
 pindf_parser *pindf_parser_new();
 void pindf_parser_init(pindf_parser *parser);
 int pindf_parser_add_token(pindf_parser *parser, pindf_token * token);
-int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream);
+int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream, uint64 content_offset);
 void pindf_parser_destroy(void *parser);
 
 pindf_symbol *pindf_symbol_new_term(pindf_token *token);

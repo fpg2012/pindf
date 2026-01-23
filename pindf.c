@@ -36,7 +36,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 	uint64 result;
 
 	// pindf_xref_entry *enrtry = (pindf_xref_entry*)malloc(sizeof(pindf_xref_entry));
-	pindf_xref_table *table = NULL;
+	// pindf_xref_table *table = NULL;
 	pindf_pdf_obj *trailer_obj = NULL;
 
 	uint options = PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_NO_EMIT | PINDF_LEXER_OPT_IGNORE_WS;
@@ -67,7 +67,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		token = pindf_lex_options(lexer, fp, options);
 		MATCH_EOL_TOKEN_OR_ERR(token);
 
-		table = pindf_xref_table_new(obj_num, len);
+		pindf_xref_table_init(&doc->xref, obj_num, len);
 
 		for (int line = 0; line < len; ++line) {
 			token = pindf_lex_options(lexer, fp, options);
@@ -82,7 +82,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 			MATCH_nf_TOKEN_OR_ERR(result, token);
 			int nf = result;
 
-			pindf_xref_table_setentry(table, line, offset, gen, nf);
+			pindf_xref_table_setentry(&doc->xref, line, offset, gen, nf);
 
 			token = pindf_lex_options(lexer, fp, options);
 			MATCH_EOL_TOKEN_OR_ERR(token);
@@ -97,8 +97,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 	if (trailer_obj->obj_type != PINDF_PDF_DICT)
 		return -1;
 
-	doc->trailer = trailer_obj;
-	doc->xref = table;
+	doc->trailer = trailer_obj->content.dict;
 
 	return 0;
 }
@@ -144,7 +143,13 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 		if (ret < 0)
 			return ret;
 
-		doc->xref_stream = obj;
+		pindf_pdf_obj *xref_stream = obj->content.indirect_obj.obj;
+		if (xref_stream->obj_type != PINDF_PDF_STREAM) {
+			fprintf(stderr, "[error] xref stream is not a stream!");
+			return -1;
+		}
+		doc->trailer = xref_stream->content.stream.dict->content.dict;
+
 		ret = 0;
 	}
 	return ret;
@@ -223,7 +228,7 @@ int pindf_file_parse(pindf_parser *parser, FILE *fp, uint64 file_len, pindf_doc 
 		fprintf(stderr, "[warning] file_parse not start from the beginning!");
 	}
 
-	pindf_doc *doc = pindf_doc_new("PDF-1.7");
+	pindf_doc *doc = pindf_doc_new("PDF-1.7", fp);
 	uint64 xref_offset;
 
 	pindf_token *token = NULL;
@@ -344,8 +349,9 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 				}
 				pindf_uchar_str *stream = pindf_uchar_str_new();
 				pindf_uchar_str_init(stream, stream_len);
+				size_t content_offset = ftell(f);
 				fread(stream->p, sizeof(uchar), stream_len, f);
-				ret = pindf_parser_add_stream(parser, stream);
+				ret = pindf_parser_add_stream(parser, stream, content_offset);
 				if (ret < 0)
 					return ret;
 				lexer->offset = ftell(f);

@@ -198,7 +198,7 @@ int _reduce_name(pindf_parser *parser) { REDUCE_SINGLE_OBJ(name, PDF_NAME, symbo
 int _reduce_ltr_str(pindf_parser *parser) { REDUCE_SINGLE_OBJ(ltr_str, PDF_LTR_STR, symbol->content.term->raw_str); }
 int _reduce_hex_str(pindf_parser *parser) { REDUCE_SINGLE_OBJ(hex_str, PDF_LTR_STR, symbol->content.term->raw_str); } // maybe we should convert the raw_str here
 
-int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream)
+int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream, uint64 content_offset)
 {
 
 	pindf_symbol *symbol = NULL;

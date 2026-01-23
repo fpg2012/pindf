@@ -30,6 +30,7 @@ typedef struct {
 } pindf_pdf_dict;
 
 typedef struct {
+	uint64 content_offset;
 	pindf_pdf_obj *dict;
 	pindf_uchar_str *stream_content;
 } pindf_pdf_stream;

@@ -117,9 +117,9 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 		p += snprintf(p, BUF_REMAIN, "\"");
 		break;
 	case PINDF_PDF_STREAM:
-		p += snprintf(p, BUF_REMAIN, "{\"type\": \"stream\", \"dict\":");
+		p += snprintf(p, BUF_REMAIN, "{\"type\":\"stream\",\"content_offset\":%llu, \"dict\":", obj->content.stream.content_offset);
 		p = pindf_pdf_obj_serialize_json(obj->content.stream.dict, p, BUF_REMAIN);
-		p += snprintf(p, BUF_REMAIN, ",\"len\": \"%lu\"", obj->content.stream.stream_content->len);
+		p += snprintf(p, BUF_REMAIN, ",\"len\":\"%lu\"", obj->content.stream.stream_content->len);
 		p += snprintf(p, BUF_REMAIN, "}");
 		break;
 	case PINDF_PDF_NULL:
@@ -231,7 +231,14 @@ char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 char *pindf_doc_serialize_json(pindf_doc *doc, char *buf, size_t buf_size)
 {
 	char *p = buf;
-	p += snprintf(p, BUF_REMAIN, "{\"version\": \"%s\", \"xref_offset\": %d, \"obj_list\": [\n", doc->pdf_version, doc->xref_offset);
+	p += snprintf(p, BUF_REMAIN, "{\"version\": \"%s\",\n\"startxref\": %d,\n", doc->pdf_version, doc->xref_offset);
+	p += snprintf(p, BUF_REMAIN, "\"trailer\":");
+	pindf_pdf_obj temp_obj = (pindf_pdf_obj){
+		.obj_type = PINDF_PDF_DICT,
+		.content.dict = doc->trailer,
+	};
+	p = pindf_pdf_obj_serialize_json(&temp_obj, p, BUF_REMAIN);
+	p += snprintf(p, BUF_REMAIN, ",\n\"obj_list\":[\n");
 
 	struct pindf_obj_entry entry;
 	for (int i = 0; i < doc->ind_obj_list->len; ++i) {
@@ -243,15 +250,6 @@ char *pindf_doc_serialize_json(pindf_doc *doc, char *buf, size_t buf_size)
 		}
 	}
 
-	p += snprintf(p, BUF_REMAIN, "\n],\n");
-
-	p += snprintf(p, BUF_REMAIN, "\"xref\":");
-
-	if (doc->trailer)
-		p = pindf_pdf_obj_serialize_json(doc->trailer, p, BUF_REMAIN);
-	else
-		p = pindf_pdf_obj_serialize_json(doc->xref_stream, p, BUF_REMAIN);
-
-	p += snprintf(p, BUF_REMAIN, "}");
+	p += snprintf(p, BUF_REMAIN, "\n]}");
 	return p;
 }
