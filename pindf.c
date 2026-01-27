@@ -91,7 +91,8 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		token = pindf_lex_options(lexer, fp, options);
 		MATCH_EOL_TOKEN_OR_ERR(token);
 
-		pindf_xref_table_init(&doc->xref, obj_num, len);
+		pindf_xref_table section;
+		pindf_xref_table_init(&section, obj_num, len);
 
 		for (int line = 0; line < len; ++line) {
 			token = pindf_lex_options(lexer, fp, options);
@@ -106,11 +107,13 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 			MATCH_nf_TOKEN_OR_ERR(result, token);
 			int nf = result;
 
-			pindf_xref_table_setentry(&doc->xref, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
+			pindf_xref_table_setentry(&section, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
 
 			token = pindf_lex_options(lexer, fp, options);
 			MATCH_EOL_TOKEN_OR_ERR(token);
 		}
+
+		pindf_xref_addsection(doc->xref, section);
 	}
 
 	// trailer
@@ -138,7 +141,9 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 	uint size;
 	uint w[3];
 	int prev_obj_num;
-	pindf_vector *index_pairs;
+	pindf_vector *index_pairs_vec = NULL;
+	int index_pairs[512];
+	int index_n_pairs = 0;
 	pindf_pdf_obj *filters = NULL;
 
 	pindf_pdf_obj *temp_obj = NULL;
@@ -169,11 +174,21 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 	}
 
 	// index pairs
-	GET_VALUE_OR_DEFAULT("/Index", index_pairs, array, ARRAY, NULL);
-	if (index_pairs == NULL) {
-		index_pairs = pindf_vector_new(2, sizeof(uint), NULL);
-		((uint*)index_pairs->buf)[0] = 0;
-		((uint*)index_pairs->buf)[1] = size;
+	GET_VALUE_OR_DEFAULT("/Index", index_pairs_vec, array, ARRAY, NULL);
+	if (index_pairs_vec == NULL) {
+		index_pairs[0] = 0;
+		index_pairs[1] = size;
+		index_n_pairs = 1;
+	} else {
+		pindf_pdf_obj *temp2 = NULL;
+		index_n_pairs = index_pairs_vec->len / 2;
+		for (int i = 0; i < index_pairs_vec->len; ++i) {
+			pindf_vector_index(index_pairs_vec, i, &temp2);
+			if (temp2->obj_type != PINDF_PDF_INT) {
+				return -1;
+			}
+			index_pairs[i] = temp2->content.num;
+		}
 	}
 
 	// decode params
@@ -186,9 +201,11 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 	}
 	decode_params_obj = temp_obj;
 
+	// parse filter and decode params
 	enum pindf_filter_type filter_array[10];
 	pindf_pdf_dict *decode_param_array[10];
 	memset(filter_array, 0, sizeof(enum pindf_filter_type) * 10);
+	memset(decode_param_array, 0, sizeof(pindf_pdf_dict*) * 10);
 	int n_filters = 0;
 	if (filters != NULL) {
 		if (filters->obj_type == PINDF_PDF_NAME) {
@@ -235,6 +252,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 		}
 	}
 	
+	// init buffers
 	pindf_uchar_str buffer1, buffer2;
 	pindf_uchar_str_init(&buffer1, PINDF_STREAM_BUF_LEN);
 	pindf_uchar_str_init(&buffer2, PINDF_STREAM_BUF_LEN);
@@ -242,6 +260,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 	pindf_uchar_str *buffer_in = xref_stream->content.stream.stream_content;
 	pindf_uchar_str *buffer_out = &buffer1;
 
+	// decode
 	for (int i = 0; i < n_filters; ++i) {
 		if (i >= 1) {
 			buffer_in = buffer_out;
@@ -268,20 +287,35 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 		buffer_out = buffer_in;
 	}
 	
-	// int
+	// fill in the xref section
 	int n_entries = buffer_out->len / (w[0] + w[1] + w[2]);
 	uchar *q = buffer_out->p;
 	uint64 temp_arr[3] = {0, 0, 0};
-	pindf_xref_table_init(&doc->xref, size, n_entries);
+
+	pindf_xref_table section;
+	int cur_section = 0, cur_section_first_entry = 0;
+	
 	for (int i = 0; i < n_entries; ++i) {
-		memset(temp_arr, 0x00, 3 * sizeof(uint64));
+		if (i == cur_section_first_entry) {
+			pindf_xref_table_init(&section, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
+		}
+
+		memset(temp_arr, 0x00, sizeof(temp_arr));
 		for (int j = 0; j < 3; ++j) {
-			for (int k = 0; k < w[j]; ++k) {
-				temp_arr[j] = (temp_arr[j] << 8) + *(q++);
+			for (int k = 0; k < w[j]; ++k, ++q) {
+				temp_arr[j] = (temp_arr[j] << 8) + *q;
 			}
 		}
-		printf("%llu %llu %llu\n", temp_arr[0], temp_arr[1], temp_arr[2]);
-		pindf_xref_table_setentry(&doc->xref, i, temp_arr[1], temp_arr[2], temp_arr[0]);
+		printf("%llx %llx %llx\n", temp_arr[0], temp_arr[1], temp_arr[2]);
+		pindf_xref_table_setentry(&section, i, temp_arr[1], temp_arr[2], temp_arr[0]);
+
+		if (i + 1 >= cur_section_first_entry + index_pairs[cur_section * 2 + 1]) {
+			printf("add section %d\n", cur_section);
+			pindf_xref_addsection(doc->xref, section); // append to xref table
+
+			++cur_section;
+			cur_section_first_entry = i + 1;
+		}
 	}
 
 	pindf_uchar_str_destroy(&buffer1);

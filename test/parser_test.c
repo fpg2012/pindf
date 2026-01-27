@@ -83,14 +83,19 @@ int main(int argc, const char **argv)
 	// === dump xref_table ===
 	printf("\n=== dump xref table ===");
 	out = fopen("xref.txt", "wb");
-	uint table_len = doc->xref.len;
-	pindf_xref_entry *entry = NULL;
-	char entry_buf[1000];
-	for (uint i = 0; i < table_len; ++i) {
-		entry = pindf_xref_table_getentry(&doc->xref, i);
-		snprintf(entry_buf, 1000, "%d\t%06llu\t%06llu\n", entry->type, entry->fields[0], entry->fields[1]);
-		fwrite(entry_buf, sizeof(char), strlen(entry_buf), out);
+
+	int n_sections = doc->xref->n_sections;
+
+	for (int i = 0; i < n_sections; ++i) {
+		size_t table_len = doc->xref->sections[i].len;
+		pindf_xref_entry *entry = NULL;
+		fprintf(out, "\n--- xref section %d (st=%zu len=%zu) ---\n", i, doc->xref->sections[i].obj_num, table_len);
+		for (uint j = 0; j < table_len; ++j) {
+			entry = pindf_xref_table_getentry(&doc->xref->sections[i], j);
+			fprintf(out, "%d %06llu %llu\n", entry->type, entry->fields[0], entry->fields[1]);
+		}
 	}
+
 	fclose(out);
 	
 	return 0;

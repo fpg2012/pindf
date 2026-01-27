@@ -3,8 +3,8 @@
 #include "../type.h"
 #include "obj.h"
 #include "../container/simple_vector.h"
-#include "../container/uchar_str.h"
-#include "../core/lexer.h"
+
+#define PINDF_MAX_XREF_SECTIONS 512
 
 enum pindf_xref_entry_type {
 	PINDF_XREF_ENTRY_F = 0, // free
@@ -24,7 +24,6 @@ struct pindf_xref_table {
 	pindf_xref_entry *entries; // list of entries
 	size_t obj_num;
 	size_t len;
-	pindf_xref_table *prev_table;
 };
 
 struct pindf_obj_entry {
@@ -33,23 +32,36 @@ struct pindf_obj_entry {
 	pindf_pdf_obj *ind_obj;
 };
 
+typedef struct pindf_xref pindf_xref;
+
+typedef struct pindf_xref {
+	pindf_xref_table sections[PINDF_MAX_XREF_SECTIONS];
+	int section_start_index[PINDF_MAX_XREF_SECTIONS];
+	int section_len[PINDF_MAX_XREF_SECTIONS];
+
+	int n_sections;
+} pindf_xref;
+
 typedef struct {
 	const char *pdf_version;
 	pindf_vector *ind_obj_list; // array of ind_obj_entry
 	int xref_offset;
 
 	pindf_pdf_dict trailer;
-	pindf_xref_table xref;
-
-	// pindf_pdf_obj *xref_stream;
+	pindf_xref *xref;
 
 	FILE *fp;
 } pindf_doc;
 
 pindf_doc *pindf_doc_new(const char *default_version, FILE *fp);
+
 void pindf_xref_table_init(pindf_xref_table *table, size_t obj_num, size_t len);
 void pindf_xref_table_setentry(pindf_xref_table *table, uint index, uint64 offset, uint gen, int nf);
 pindf_xref_entry *pindf_xref_table_getentry(pindf_xref_table *table, uint index);
+
+void pindf_xref_init(pindf_xref *xref);
+void pindf_xref_addsection(pindf_xref *xref, pindf_xref_table section);
+pindf_xref_entry *pindf_xref_getentry(pindf_xref *table, pindf_pdf_obj *ref);
 
 void pindf_doc_obj_setentry(pindf_doc *doc, pindf_pdf_obj *obj, uint64 offset);
 pindf_pdf_obj *pindf_doc_obj_getentry(pindf_doc *doc, uint64 obj_num, uint64 *offset);

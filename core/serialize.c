@@ -11,8 +11,6 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 	switch (obj->obj_type) {
 	case PINDF_PDF_DICT: {
 		p += snprintf(p, BUF_REMAIN, "{");
-
-		
 		pindf_vector *keys = obj->content.dict.keys;
 		pindf_vector *values = obj->content.dict.values;
 		size_t len = keys->len;
