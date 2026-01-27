@@ -8,6 +8,8 @@ ZLIB_LDFLAGS := $(shell pkg-config --libs zlib 2>/dev/null || echo "-lz -L/usr/l
 CFLAGS += $(ZLIB_CFLAGS)
 LDFLAGS += $(ZLIB_LDFLAGS)
 
+CFLAGS += -fsanitize=address
+
 all: lexer_test parser_test vec_test filter_test
 
 lexer_test: test/lexer_test.c ${SRC}

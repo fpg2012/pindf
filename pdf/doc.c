@@ -27,10 +27,16 @@ void pindf_xref_table_init(pindf_xref_table *table, size_t obj_num, size_t len)
 
 void pindf_xref_table_setentry(pindf_xref_table *table, uint index, uint64 offset, uint gen, int nf)
 {
-	table->entries[index] = (pindf_xref_entry){
-		.fields = {offset, gen,},
-		.type = nf,
-	};
+	if (table->entries[index].type == 0 &&
+		table->entries[index].fields[0] == 0
+		&& table->entries[index].fields[0] == 0
+	) {
+		table->entries[index] = (pindf_xref_entry){
+			.fields = {offset, gen,},
+			.type = nf,
+		};
+	}
+	
 }
 
 pindf_xref_entry *pindf_xref_table_getentry(pindf_xref_table *table, uint index) {
@@ -77,7 +83,6 @@ void pindf_xref_init(pindf_xref *xref, size_t size)
 {
 	xref->n_sections = 0;
 	xref->size = size;
-	xref->cur_size = 0;
 	
 	xref->entries = (pindf_xref_entry*)calloc(size, sizeof(pindf_xref_entry));
 	xref->first_section = NULL;
@@ -86,12 +91,13 @@ void pindf_xref_init(pindf_xref *xref, size_t size)
 pindf_xref_table *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, size_t len)
 {
 	assert(xref != NULL && "xref is null");
+	assert(obj_num + len <= xref->size  && "xref overflow");
 
 	pindf_xref_table *section = (pindf_xref_table*)malloc(sizeof(pindf_xref_table));
 	*section = (pindf_xref_table){
 		.obj_num = obj_num,
 		.len = len,
-		.entries = xref->entries + xref->cur_size,
+		.entries = xref->entries + obj_num,
 		.next_table = NULL,
 	};
 
@@ -105,7 +111,6 @@ pindf_xref_table *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, siz
 		cur->next_table = section;
 	}
 
-	xref->cur_size += len;
 	xref->n_sections++;
 
 	return section;

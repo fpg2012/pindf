@@ -41,7 +41,6 @@ typedef struct pindf_xref {
 	pindf_xref_table *first_section;
 
 	size_t n_sections;
-	size_t cur_size;
 	size_t size;
 } pindf_xref;
 
