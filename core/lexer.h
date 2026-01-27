@@ -8,7 +8,7 @@
 #include "../type.h"
 #include "../container/uchar_str.h"
 
-#define PINDF_LEXER_BUFSIZE 32768
+#define PINDF_LEXER_BUFSIZE 1048576
 
 enum pindf_lexer_state {
 	PINDF_LEXER_STATE_DEFAULT = 0,
