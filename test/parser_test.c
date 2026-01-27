@@ -78,6 +78,20 @@ int main(int argc, const char **argv)
 	FILE *out = fopen("out.json", "wb");
 	// fwrite(buf, sizeof(char), p - buf, stdout);
 	fwrite(buf, sizeof(char), p - buf, out);
+	fclose(out);
+
+	// === dump xref_table ===
+	printf("\n=== dump xref table ===");
+	out = fopen("xref.txt", "wb");
+	uint table_len = doc->xref.len;
+	pindf_xref_entry *entry = NULL;
+	char entry_buf[1000];
+	for (uint i = 0; i < table_len; ++i) {
+		entry = pindf_xref_table_getentry(&doc->xref, i);
+		snprintf(entry_buf, 1000, "%d\t%06llu\t%06llu\n", entry->type, entry->fields[0], entry->fields[1]);
+		fwrite(entry_buf, sizeof(char), strlen(entry_buf), out);
+	}
+	fclose(out);
 	
 	return 0;
 }

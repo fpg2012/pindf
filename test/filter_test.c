@@ -72,14 +72,13 @@ int main(int argc, const char **argv)
 	printf("=== filters ===\n");
 	struct pindf_obj_entry entry;
 	pindf_pdf_obj *obj = NULL;
-	pindf_uchar_str *filter_key = pindf_uchar_str_from_cstr("/Filter", strlen("/Filter"));
 	for (int i = 0; i < doc->ind_obj_list->len; ++i) {
 		pindf_vector_index(doc->ind_obj_list, i, &entry);
 		if (entry.ind_obj->content.indirect_obj.obj->obj_type != PINDF_PDF_STREAM) {
 			continue;
 		}
 		pindf_pdf_obj *stream = entry.ind_obj->content.indirect_obj.obj;
-		obj = pindf_dict_getvalue(&stream->content.stream.dict->content.dict, filter_key);
+		obj = pindf_dict_getvalue2(&stream->content.stream.dict->content.dict, "/Filter");
 
 		if (obj == NULL) {
 			fprintf(stderr, "[warn] filter value not found!\n");

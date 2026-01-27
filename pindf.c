@@ -29,6 +29,30 @@
 		} \
 	} while (0)
 
+#define GET_VALUE_OR_ERR(key, var, val, TYPE) \
+	do { \
+		temp_obj = pindf_dict_getvalue2(&doc->trailer, key); \
+		if (temp_obj == NULL || temp_obj->obj_type != PINDF_PDF_##TYPE) { \
+			fprintf(stderr, "[error] invalid type of %s: %d", key, PINDF_PDF_##TYPE); \
+			return -1; \
+		} \
+		var = temp_obj->content.val; \
+	} while (0)
+
+#define GET_VALUE_OR_DEFAULT(key, var, val, TYPE, def) \
+do { \
+	temp_obj = pindf_dict_getvalue2(&doc->trailer, key); \
+	if (temp_obj != NULL && temp_obj->obj_type != PINDF_PDF_##TYPE) { \
+		fprintf(stderr, "[error] invalid type of %s: %d", key, PINDF_PDF_##TYPE); \
+		return -1; \
+	} \
+	if (temp_obj == NULL) { \
+		var = def; \
+	} else { \
+		var = temp_obj->content.val; \
+	} \
+} while (0)
+
 int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_doc *doc)
 {
 	pindf_token *token = NULL;
@@ -82,7 +106,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 			MATCH_nf_TOKEN_OR_ERR(result, token);
 			int nf = result;
 
-			pindf_xref_table_setentry(&doc->xref, line, offset, gen, nf);
+			pindf_xref_table_setentry(&doc->xref, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
 
 			token = pindf_lex_options(lexer, fp, options);
 			MATCH_EOL_TOKEN_OR_ERR(token);
@@ -98,6 +122,170 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		return -1;
 
 	doc->trailer = trailer_obj->content.dict;
+
+	return 0;
+}
+
+int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
+{
+	pindf_pdf_obj *xref_stream = obj->content.indirect_obj.obj;
+	if (xref_stream->obj_type != PINDF_PDF_STREAM) {
+		fprintf(stderr, "[error] xref stream is not a stream!");
+		return -1;
+	}
+	doc->trailer = xref_stream->content.stream.dict->content.dict;
+
+	uint size;
+	uint w[3];
+	int prev_obj_num;
+	pindf_vector *index_pairs;
+	pindf_pdf_obj *filters = NULL;
+
+	pindf_pdf_obj *temp_obj = NULL;
+	pindf_pdf_obj *decode_params_obj = NULL;
+
+	// filter
+	filters = pindf_dict_getvalue2(&doc->trailer, "/Filter");
+	
+	// size
+	GET_VALUE_OR_ERR("/Size", size, num, INT);
+	
+	// prev_obj_num
+	GET_VALUE_OR_DEFAULT("/Prev", prev_obj_num, num, INT, -1);
+	printf("prev: %d\n", prev_obj_num);
+
+	// W
+	temp_obj = pindf_dict_getvalue2(&doc->trailer, "/W");
+	if (temp_obj == NULL || temp_obj->obj_type != PINDF_PDF_ARRAY || temp_obj->content.array->len != 3) {
+		return -1;
+	}
+	for (int i = 0; i < 3; ++i) {
+		pindf_pdf_obj *temp2;
+		pindf_vector_index(temp_obj->content.array, i, &temp2);
+		if (temp2->obj_type != PINDF_PDF_INT) {
+			return -1;
+		}
+		w[i] = temp2->content.num;
+	}
+
+	// index pairs
+	GET_VALUE_OR_DEFAULT("/Index", index_pairs, array, ARRAY, NULL);
+	if (index_pairs == NULL) {
+		index_pairs = pindf_vector_new(2, sizeof(uint), NULL);
+		((uint*)index_pairs->buf)[0] = 0;
+		((uint*)index_pairs->buf)[1] = size;
+	}
+
+	// decode params
+	temp_obj = pindf_dict_getvalue2(&doc->trailer, "/DecodeParms");
+	if (temp_obj != NULL && 
+		temp_obj->obj_type != PINDF_PDF_DICT && 
+		temp_obj->obj_type != PINDF_PDF_ARRAY
+	) {
+		return -1;
+	}
+	decode_params_obj = temp_obj;
+
+	enum pindf_filter_type filter_array[10];
+	pindf_pdf_dict *decode_param_array[10];
+	memset(filter_array, 0, sizeof(enum pindf_filter_type) * 10);
+	int n_filters = 0;
+	if (filters != NULL) {
+		if (filters->obj_type == PINDF_PDF_NAME) {
+			filter_array[0] = pindf_filter_type_from_name(filters->content.name);
+			n_filters = 1;
+
+			if (decode_params_obj != NULL) {
+				if (decode_params_obj->obj_type != PINDF_PDF_DICT) {
+					fprintf(stderr, "[error] decode params type invalid\n");
+					return -1;
+				}
+				decode_param_array[0] = &decode_params_obj->content.dict;
+			}
+		} else if (filters->obj_type == PINDF_PDF_ARRAY) {
+			n_filters = filters->content.array->len;
+			for (int i = 0; i < n_filters; ++i) {
+				pindf_pdf_obj *temp2;
+				pindf_vector_index(filters->content.array, i, &temp2);
+				if (temp2->obj_type != PINDF_PDF_NAME) {
+					return -1;
+				}
+				filter_array[i] = pindf_filter_type_from_name(temp2->content.name);
+			}
+
+			if (decode_params_obj != NULL) {
+				if (decode_params_obj->obj_type != PINDF_PDF_ARRAY ||
+					decode_params_obj->content.array->len != n_filters
+				) {
+					fprintf(stderr, "[error] decode params type invalid\n");
+					return -1;
+				}
+				for (int i = 0; i < n_filters; ++i) {
+					pindf_pdf_obj *temp3;
+					pindf_vector_index(decode_params_obj->content.array, i, &temp3);
+					if (temp3->obj_type != PINDF_PDF_DICT) {
+						fprintf(stderr, "[error] decode params type invalid\n");
+						return -1;
+					}
+					decode_param_array[i] = &temp3->content.dict;
+				}
+			}
+		} else {
+			return -1;
+		}
+	}
+	
+	pindf_uchar_str buffer1, buffer2;
+	pindf_uchar_str_init(&buffer1, PINDF_STREAM_BUF_LEN);
+	pindf_uchar_str_init(&buffer2, PINDF_STREAM_BUF_LEN);
+
+	pindf_uchar_str *buffer_in = xref_stream->content.stream.stream_content;
+	pindf_uchar_str *buffer_out = &buffer1;
+
+	for (int i = 0; i < n_filters; ++i) {
+		if (i >= 1) {
+			buffer_in = buffer_out;
+			buffer_out = (buffer_out == &buffer1 ? &buffer2 : &buffer1);
+		}
+
+		pindf_stream_filter _f;
+		int ret = 0;
+
+		ret = pindf_filter_init(&_f, filter_array[i], decode_param_array[i]);
+		if (ret < 0) {
+			fprintf(stderr, "[error] failed to init filter %d\n", filter_array[i]);
+			return ret;
+		}
+
+		ret = _f.decode(&_f, buffer_out, buffer_in);
+		if (ret < 0) {
+			fprintf(stderr, "[error] failed to decode xref stream with filter %d\n", filter_array[i]);
+			return -1;
+		}
+	}
+
+	if (n_filters == 0) {
+		buffer_out = buffer_in;
+	}
+	
+	// int
+	int n_entries = buffer_out->len / (w[0] + w[1] + w[2]);
+	uchar *q = buffer_out->p;
+	uint64 temp_arr[3] = {0, 0, 0};
+	pindf_xref_table_init(&doc->xref, size, n_entries);
+	for (int i = 0; i < n_entries; ++i) {
+		memset(temp_arr, 0x00, 3 * sizeof(uint64));
+		for (int j = 0; j < 3; ++j) {
+			for (int k = 0; k < w[j]; ++k) {
+				temp_arr[j] = (temp_arr[j] << 8) + *(q++);
+			}
+		}
+		printf("%llu %llu %llu\n", temp_arr[0], temp_arr[1], temp_arr[2]);
+		pindf_xref_table_setentry(&doc->xref, i, temp_arr[1], temp_arr[2], temp_arr[0]);
+	}
+
+	pindf_uchar_str_destroy(&buffer1);
+	pindf_uchar_str_destroy(&buffer2);
 
 	return 0;
 }
@@ -142,15 +330,7 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 		ret = pindf_parse_one_obj(parser, lexer, fp, &obj, NULL, PINDF_PDF_IND_OBJ);
 		if (ret < 0)
 			return ret;
-
-		pindf_pdf_obj *xref_stream = obj->content.indirect_obj.obj;
-		if (xref_stream->obj_type != PINDF_PDF_STREAM) {
-			fprintf(stderr, "[error] xref stream is not a stream!");
-			return -1;
-		}
-		doc->trailer = xref_stream->content.stream.dict->content.dict;
-
-		ret = 0;
+		ret = pindf_parse_xref_obj(doc, obj);
 	}
 	return ret;
 }

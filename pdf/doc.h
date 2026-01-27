@@ -1,16 +1,21 @@
 #pragma once
 
+#include "../type.h"
 #include "obj.h"
 #include "../container/simple_vector.h"
 #include "../container/uchar_str.h"
+#include "../core/lexer.h"
+
+enum pindf_xref_entry_type {
+	PINDF_XREF_ENTRY_F = 0, // free
+	PINDF_XREF_ENTRY_N, // normal
+	PINDF_XREF_ENTRY_C, // compressed
+};
 
 typedef struct {
-	uint64 offset;
-	uint gen;
-	
-	// 0 - n
-	// 1 - f
-	int nf;
+	enum pindf_xref_entry_type type;
+
+	uint64 fields[2];
 } pindf_xref_entry;
 
 typedef struct pindf_xref_table pindf_xref_table;

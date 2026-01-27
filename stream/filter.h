@@ -73,3 +73,6 @@ int pindf_zlib_compress(pindf_uchar_str *dest, pindf_uchar_str *src);
 
 int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src);
 int pindf_flate_encode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src);
+
+enum pindf_filter_type pindf_filter_type_from_name(const pindf_uchar_str *name);
+enum pindf_filter_type pindf_filter_type_from_name2(const char *name);

@@ -1,6 +1,4 @@
 #include "filter.h"
-#include <string.h>
-#include <zlib.h>
 
 /*
 note
@@ -77,7 +75,7 @@ int pindf_filter_init(pindf_stream_filter *filter, enum pindf_filter_type type, 
 		filter->decode = pindf_flate_decode;
 		filter->encode = pindf_flate_encode;
 
-		int predictor = 0, colors = 1, bits_per_component = 8, columns = 1;
+		int predictor = PINDF_FLTR_FLATE_PREDICTOR_NONE, colors = 1, bits_per_component = 8, columns = 1;
 		if (decode_params != NULL) {
 			pindf_pdf_obj *temp_obj;
 			temp_obj = pindf_dict_getvalue2(decode_params, "/Predictor");
@@ -139,7 +137,7 @@ int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 		size_t sample_size = (f->decode_params.bits_per_component * f->decode_params.colors + 7) / 8;
 		size_t columns = f->decode_params.columns;
 		size_t row_size = sample_size * columns;
-		size_t n_rows = dest->len / (row_size + 1); // +1 for filter byte
+		size_t n_rows = temp_dest.len / (row_size + 1); // +1 for filter byte
 
 		uchar buffer[row_size + 1];
 		memset(buffer, 0, sizeof(buffer));
@@ -181,7 +179,8 @@ int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 		pindf_uchar_str_destroy(&temp_dest);
 		return dest->len;
 	}
-
+	
+	fprintf(stderr, "[error] predictor %d not implemented in flate decode!", f->decode_params.predictor);
 	return PINDF_FLTR_DAT_ERR;
 }
 
@@ -198,4 +197,46 @@ int pindf_flate_encode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 
 	fprintf(stderr, "[error] predictor %d not implemented in flate encode!", f->decode_params.predictor);
 	return PINDF_FLTR_DAT_ERR;
+}
+
+enum pindf_filter_type pindf_filter_type_from_name(const pindf_uchar_str *name)
+{
+	if (pindf_uchar_str_cmp3(name, "/FlateDecode") == 0) {
+		return PINDF_FLTR_TYPE_FLATEDECODE;
+	} else if (pindf_uchar_str_cmp3(name, "/ASCIIHexDecode") == 0) {
+		return PINDF_FLTR_TYPE_ASCIIHEXDECODE;
+	} else if (pindf_uchar_str_cmp3(name, "/ASCII85Decode") == 0) {
+		return PINDF_FLTR_TYPE_ASCII85DECODE;
+	} else if (pindf_uchar_str_cmp3(name, "/LZWDecode") == 0) {
+		return PINDF_FLTR_TYPE_LZWDECODE;
+	} else if (pindf_uchar_str_cmp3(name, "/RunLengthDecode") == 0) {
+		return PINDF_FLTR_TYPE_RUNLENGTHDECODE;
+	} else if (pindf_uchar_str_cmp3(name, "/CCITTFaxDecode") == 0) {
+		return PINDF_FLTR_TYPE_CCITTFAXDECODE;
+	} else if (pindf_uchar_str_cmp3(name, "/DCTDecode") == 0) {
+		return PINDF_FLTR_TYPE_DCTDECODE;
+	}
+
+	return PINDF_FLTR_TYPE_NONE;
+}
+
+enum pindf_filter_type pindf_filter_type_from_name2(const char *name)
+{
+	if (strcmp(name, "/FlateDecode") == 0) {
+		return PINDF_FLTR_TYPE_FLATEDECODE;
+	} else if (strcmp(name, "/ASCIIHexDecode") == 0) {
+		return PINDF_FLTR_TYPE_ASCIIHEXDECODE;
+	} else if (strcmp(name, "/ASCII85Decode") == 0) {
+		return PINDF_FLTR_TYPE_ASCII85DECODE;
+	} else if (strcmp(name, "/LZWDecode") == 0) {
+		return PINDF_FLTR_TYPE_LZWDECODE;
+	} else if (strcmp(name, "/RunLengthDecode") == 0) {
+		return PINDF_FLTR_TYPE_RUNLENGTHDECODE;
+	} else if (strcmp(name, "/CCITTFaxDecode") == 0) {
+		return PINDF_FLTR_TYPE_CCITTFAXDECODE;
+	} else if (strcmp(name, "/DCTDecode") == 0) {
+		return PINDF_FLTR_TYPE_DCTDECODE;
+	}
+
+	return PINDF_FLTR_TYPE_NONE;
 }

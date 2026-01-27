@@ -30,9 +30,8 @@ void pindf_xref_table_init(pindf_xref_table *table, size_t obj_num, size_t len)
 void pindf_xref_table_setentry(pindf_xref_table *table, uint index, uint64 offset, uint gen, int nf)
 {
 	table->entries[index] = (pindf_xref_entry){
-		.offset = offset,
-		.gen = gen,
-		.nf = nf
+		.fields = {offset, gen,},
+		.type = nf,
 	};
 }
 
