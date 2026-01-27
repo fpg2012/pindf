@@ -1,5 +1,5 @@
 SRC = pdf/*.c container/*.c 
-SRC += core/lexer.c core/parser.c core/serialize.c
+SRC += core/lexer.c core/parser.c core/serialize.c stream/*.c
 SRC += pindf.c
 CFLAGS += -g -std=c11
 
@@ -11,16 +11,19 @@ LDFLAGS += $(ZLIB_LDFLAGS)
 all: lexer_test parser_test vec_test filter_test
 
 lexer_test: test/lexer_test.c ${SRC}
-	CC -o test/lexer_test test/lexer_test.c ${SRC} ${CFLAGS}
+	CC -o test/lexer_test test/lexer_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
 parser_test: test/parser_test.c ${SRC}
-	CC -o test/parser_test test/parser_test.c ${SRC} ${CFLAGS}
+	CC -o test/parser_test test/parser_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
 filter_test: test/filter_test.c ${SRC}
 	CC -o test/filter_test test/filter_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
 vec_test: test/vec_test.c container/simple_vector.c
 	CC -o test/vec_test test/vec_test.c container/simple_vector.c ${CFLAGS}
+
+compress_test: test/compress_test.c ${SRC}
+	CC -o test/compress_test test/compress_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
 clean:
 	rm -f test/*_test

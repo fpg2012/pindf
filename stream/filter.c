@@ -1,4 +1,5 @@
 #include "filter.h"
+#include <string.h>
 #include <zlib.h>
 
 /*
@@ -59,4 +60,142 @@ int pindf_zlib_compress(pindf_uchar_str *dest, pindf_uchar_str *src)
 
 	dest->len = cap;
 	return cap; 
+}
+
+int pindf_filter_init(pindf_stream_filter *filter, enum pindf_filter_type type, pindf_pdf_dict *decode_params)
+{
+	filter->type = type;
+
+	if (type == PINDF_FLTR_TYPE_NONE) {
+		filter->decode = NULL;
+		filter->encode = NULL;
+		return 0;
+	} else if (type != PINDF_FLTR_TYPE_FLATEDECODE) {
+		fprintf(stderr, "[error] filter type %d not implemented yet!", type);
+		return -1;
+	} else {
+		filter->decode = pindf_flate_decode;
+		filter->encode = pindf_flate_encode;
+
+		int predictor = 0, colors = 1, bits_per_component = 8, columns = 1;
+		if (decode_params != NULL) {
+			pindf_pdf_obj *temp_obj;
+			temp_obj = pindf_dict_getvalue2(decode_params, "/Predictor");
+			if (temp_obj != NULL && temp_obj->obj_type == PINDF_PDF_INT) {
+				predictor = (enum pindf_filter_flate_predictor)temp_obj->content.num;
+			}
+
+			if (predictor > 1) {
+				temp_obj = pindf_dict_getvalue2(decode_params, "/Colors");
+				if (temp_obj != NULL && temp_obj->obj_type == PINDF_PDF_INT) {
+					colors = (int)temp_obj->content.num;
+				}
+
+				temp_obj = pindf_dict_getvalue2(decode_params, "/BitsPerComponent");
+				if (temp_obj != NULL && temp_obj->obj_type == PINDF_PDF_INT) {
+					bits_per_component = (int)temp_obj->content.num;
+				}
+
+				temp_obj = pindf_dict_getvalue2(decode_params, "/Columns");
+				if (temp_obj != NULL && temp_obj->obj_type == PINDF_PDF_INT) {
+					columns = (int)temp_obj->content.num;
+				}
+			}
+		}
+
+		filter->decode_params = (pindf_filter_decode_params){
+			.predictor = predictor,
+			.colors = colors,
+			.bits_per_component = bits_per_component,
+			.columns = columns,
+		};
+	}
+	
+	return 0;
+}
+
+int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src)
+{
+	if (f->type != PINDF_FLTR_TYPE_FLATEDECODE) {
+		fprintf(stderr, "[error] filter type %d not supported in flate decode!", f->type);
+		return PINDF_FLTR_DAT_ERR;
+	}
+
+	if (f->decode_params.predictor == PINDF_FLTR_FLATE_PREDICTOR_NONE) {
+		return pindf_zlib_uncompress(dest, src);
+	}
+	
+	if (f->decode_params.predictor >= 10 && f->decode_params.predictor <= 15) {
+		pindf_uchar_str temp_dest;
+		pindf_uchar_str_init(&temp_dest, dest->capacity);
+
+		// PNG prediction
+		int ret = pindf_zlib_uncompress(&temp_dest, src);
+		if (ret < 0) {
+			return ret;
+		}
+
+		// Apply PNG prediction
+		size_t sample_size = (f->decode_params.bits_per_component * f->decode_params.colors + 7) / 8;
+		size_t columns = f->decode_params.columns;
+		size_t row_size = sample_size * columns;
+		size_t n_rows = dest->len / (row_size + 1); // +1 for filter byte
+
+		uchar buffer[row_size + 1];
+		memset(buffer, 0, sizeof(buffer));
+
+		uchar *p = temp_dest.p;
+		uchar *q = dest->p;
+
+		for (int i = 0; i < n_rows; ++i) {
+			enum pindf_png_filter_type filter_type = *p++;
+			for (int j = 1; j <= row_size; ++j, ++p) {
+				uchar cur_byte = *p;
+				
+				switch (filter_type) {
+				case PINDF_PNG_FLTR_TYPE_NONE:
+					cur_byte = *p;
+					break;
+				case PINDF_PNG_FLTR_TYPE_SUB:
+					cur_byte = *p + buffer[j - 1];
+					break;
+				case PINDF_PNG_FLTR_TYPE_UP:
+					cur_byte = *p + buffer[j];
+					break;
+				case PINDF_PNG_FLTR_TYPE_AVERAGE:
+					cur_byte = *p + ((buffer[j - 1] + buffer[j]) / 2);
+					break;
+				default:
+					fprintf(stderr, "[error] unsupported PNG filter type %d\n", filter_type);
+					pindf_uchar_str_destroy(&temp_dest);
+					return PINDF_FLTR_DAT_ERR;
+				}
+
+				buffer[j] = cur_byte;
+			}
+			memcpy(q, buffer + 1, row_size);
+			q += row_size;
+		}
+
+		dest->len = n_rows * row_size;
+		pindf_uchar_str_destroy(&temp_dest);
+		return dest->len;
+	}
+
+	return PINDF_FLTR_DAT_ERR;
+}
+
+int pindf_flate_encode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src)
+{
+	if (f->type != PINDF_FLTR_TYPE_FLATEDECODE) {
+		fprintf(stderr, "[error] filter type %d not supported in flate encode!", f->type);
+		return PINDF_FLTR_DAT_ERR;
+	}
+
+	if (f->decode_params.predictor == PINDF_FLTR_FLATE_PREDICTOR_NONE) {
+		return pindf_zlib_compress(dest, src);
+	}
+
+	fprintf(stderr, "[error] predictor %d not implemented in flate encode!", f->decode_params.predictor);
+	return PINDF_FLTR_DAT_ERR;
 }
