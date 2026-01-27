@@ -45,7 +45,6 @@ void pindf_uchar_str_2xexpand(pindf_uchar_str *str)
 void pindf_uchar_str_destroy(pindf_uchar_str *str)
 {
 	free(str->p);
-	free(str);
 }
 
 void pindf_uchar_str_destroy_wo_p(pindf_uchar_str *str)
@@ -55,10 +54,15 @@ void pindf_uchar_str_destroy_wo_p(pindf_uchar_str *str)
 
 int pindf_uchar_str_cmp(pindf_uchar_str *a, pindf_uchar_str *b)
 {
+	return pindf_uchar_str_cmp2(a, b->p, b->len);
+}
+
+int pindf_uchar_str_cmp2(pindf_uchar_str *a, const uchar *b, size_t len)
+{
 	assert(a != NULL);
 	assert(b != NULL);
-	uchar *p = a->p, *q = b->p;
-	uchar *p_end = a->p + a->len, *q_end = q + b->len;
+	uchar *p = a->p, *q = (uchar*)b;
+	uchar *p_end = a->p + a->len, *q_end = q + len;
 	while (p != p_end && q != q_end) {
 		if (*p < *q) {
 			return -1;
@@ -67,9 +71,9 @@ int pindf_uchar_str_cmp(pindf_uchar_str *a, pindf_uchar_str *b)
 		}
 		++p, ++q;
 	}
-	if (a->len < b->len) {
+	if (a->len < len) {
 		return -1;
-	} else if (a->len > b->len) {
+	} else if (a->len > len) {
 		return 1;
 	}
 	return 0;
