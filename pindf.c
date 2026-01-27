@@ -55,6 +55,8 @@ do { \
 
 int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_doc *doc)
 {
+	size_t init_fp = ftell(fp);
+
 	pindf_token *token = NULL;
 
 	uint64 result;
@@ -63,7 +65,46 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 	// pindf_xref_table *table = NULL;
 	pindf_pdf_obj *trailer_obj = NULL;
 
-	uint options = PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_NO_EMIT | PINDF_LEXER_OPT_IGNORE_WS;
+	uint options = PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_NO_EMIT | PINDF_LEXER_OPT_IGNORE_WS | PINDF_LEXER_EMIT_EOL;
+
+	// quick match trailer keyword
+	do {
+		// section header
+		token = pindf_lex_options(lexer, fp, options | PINDF_LEXER_OPT_IGNORE_EOL);
+
+		if (token->event < 0) {
+			return -1;
+		}
+	} while (!(token->event == PINDF_LEXER_EMIT_REGULAR &&
+		token->reg_type == PINDF_LEXER_REGTYPE_KWD &&
+		token->kwd == PINDF_KWD_trailer));
+
+	// trailer
+	int ret = pindf_parse_one_obj(parser, lexer, fp, &trailer_obj, NULL, PINDF_PDF_DICT);
+	if (ret < 0)
+		return -1;
+
+	if (trailer_obj->obj_type != PINDF_PDF_DICT)
+		return -1;
+
+	doc->trailer = trailer_obj->content.dict;
+
+	// get size
+	pindf_pdf_obj *size_obj = NULL;
+	size_obj = pindf_dict_getvalue2(&doc->trailer, "/Size");
+	if (size_obj == NULL || size_obj->obj_type != PINDF_PDF_INT) {
+		fprintf(stderr, "[error] invalid type of /Size in trailer\n");
+		return -1;
+	}
+	size_t size = size_obj->content.num;
+	
+	// init xref
+	if (doc->xref == NULL) {
+		doc->xref = (pindf_xref*)malloc(sizeof(pindf_xref));
+		pindf_xref_init(doc->xref, size);
+	}
+
+	fseek(fp, init_fp, SEEK_SET);
 
 	while(1) {
 		size_t obj_num;
@@ -91,8 +132,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		token = pindf_lex_options(lexer, fp, options);
 		MATCH_EOL_TOKEN_OR_ERR(token);
 
-		pindf_xref_table section;
-		pindf_xref_table_init(&section, obj_num, len);
+		pindf_xref_table *section = pindf_xref_alloc_section(doc->xref, obj_num, len);
 
 		for (int line = 0; line < len; ++line) {
 			token = pindf_lex_options(lexer, fp, options);
@@ -107,24 +147,12 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 			MATCH_nf_TOKEN_OR_ERR(result, token);
 			int nf = result;
 
-			pindf_xref_table_setentry(&section, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
+			pindf_xref_table_setentry(section, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
 
 			token = pindf_lex_options(lexer, fp, options);
 			MATCH_EOL_TOKEN_OR_ERR(token);
 		}
-
-		pindf_xref_addsection(doc->xref, section);
 	}
-
-	// trailer
-	int ret = pindf_parse_one_obj(parser, lexer, fp, &trailer_obj, NULL, PINDF_PDF_DICT);
-	if (ret < 0)
-		return -1;
-
-	if (trailer_obj->obj_type != PINDF_PDF_DICT)
-		return -1;
-
-	doc->trailer = trailer_obj->content.dict;
 
 	return 0;
 }
@@ -292,12 +320,17 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 	uchar *q = buffer_out->p;
 	uint64 temp_arr[3] = {0, 0, 0};
 
-	pindf_xref_table section;
+	if (doc->xref == NULL) {
+		doc->xref = (pindf_xref*)malloc(sizeof(pindf_xref));
+		pindf_xref_init(doc->xref, size);
+	}
+	pindf_xref_table *section = NULL;
 	int cur_section = 0, cur_section_first_entry = 0;
 	
 	for (int i = 0; i < n_entries; ++i) {
 		if (i == cur_section_first_entry) {
-			pindf_xref_table_init(&section, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
+			printf("alloc section %d (st=%d len=%d)", cur_section, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
+			section = pindf_xref_alloc_section(doc->xref, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
 		}
 
 		memset(temp_arr, 0x00, sizeof(temp_arr));
@@ -307,11 +340,10 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj)
 			}
 		}
 		printf("%llx %llx %llx\n", temp_arr[0], temp_arr[1], temp_arr[2]);
-		pindf_xref_table_setentry(&section, i, temp_arr[1], temp_arr[2], temp_arr[0]);
+		pindf_xref_table_setentry(section, i - cur_section_first_entry, temp_arr[1], temp_arr[2], temp_arr[0]);
 
 		if (i + 1 >= cur_section_first_entry + index_pairs[cur_section * 2 + 1]) {
 			printf("add section %d\n", cur_section);
-			pindf_xref_addsection(doc->xref, section); // append to xref table
 
 			++cur_section;
 			cur_section_first_entry = i + 1;

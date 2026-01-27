@@ -86,14 +86,18 @@ int main(int argc, const char **argv)
 
 	int n_sections = doc->xref->n_sections;
 
-	for (int i = 0; i < n_sections; ++i) {
-		size_t table_len = doc->xref->sections[i].len;
+	pindf_xref_table *section = doc->xref->first_section;
+	int section_index = 0;
+	while (section != NULL) {
 		pindf_xref_entry *entry = NULL;
-		fprintf(out, "\n--- xref section %d (st=%zu len=%zu) ---\n", i, doc->xref->sections[i].obj_num, table_len);
-		for (uint j = 0; j < table_len; ++j) {
-			entry = pindf_xref_table_getentry(&doc->xref->sections[i], j);
+		fprintf(out, "\n--- xref section %d (st=%zu len=%zu) ---\n", section_index, section->obj_num, section->len);
+		for (uint j = 0; j < section->len; ++j) {
+			entry = pindf_xref_table_getentry(section, j);
 			fprintf(out, "%d %06llu %llu\n", entry->type, entry->fields[0], entry->fields[1]);
 		}
+
+		section = section->next_table;
+		++section_index;
 	}
 
 	fclose(out);

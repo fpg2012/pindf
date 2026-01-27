@@ -10,8 +10,7 @@ pindf_doc *pindf_doc_new(const char *default_version, FILE *fp)
 
 	doc->ind_obj_list = pindf_vector_new(500, sizeof(struct pindf_obj_entry), NULL);
 
-	doc->xref = (pindf_xref*)malloc(sizeof(pindf_xref));
-	pindf_xref_init(doc->xref);
+	doc->xref = NULL;
 
 	doc->fp = fp;
 
@@ -23,6 +22,7 @@ void pindf_xref_table_init(pindf_xref_table *table, size_t obj_num, size_t len)
 	table->obj_num = obj_num;
 	table->len = len;
 	table->entries = (pindf_xref_entry*)calloc(len+1, sizeof(pindf_xref_entry));
+	table->next_table = NULL;
 }
 
 void pindf_xref_table_setentry(pindf_xref_table *table, uint index, uint64 offset, uint gen, int nf)
@@ -73,27 +73,56 @@ pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, uint64 obj_num)
 
 
 /// xref ///
-void pindf_xref_init(pindf_xref *xref)
+void pindf_xref_init(pindf_xref *xref, size_t size)
 {
 	xref->n_sections = 0;
+	xref->size = size;
+	xref->cur_size = 0;
 	
-	memset(xref->section_len, 0x00, sizeof(int) * PINDF_MAX_XREF_SECTIONS);
-	memset(xref->section_start_index, 0x00, sizeof(int) * PINDF_MAX_XREF_SECTIONS);
-	memset(xref->sections, 0x00, sizeof(pindf_xref_table*) * PINDF_MAX_XREF_SECTIONS);
+	xref->entries = (pindf_xref_entry*)calloc(size, sizeof(pindf_xref_entry));
+	xref->first_section = NULL;
 }
 
-void pindf_xref_addsection(pindf_xref *xref, pindf_xref_table section)
+pindf_xref_table *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, size_t len)
 {
 	assert(xref != NULL && "xref is null");
-	assert(xref->n_sections != PINDF_MAX_XREF_SECTIONS && "xref overflow");
 
-	size_t cur = xref->n_sections;
+	pindf_xref_table *section = (pindf_xref_table*)malloc(sizeof(pindf_xref_table));
+	*section = (pindf_xref_table){
+		.obj_num = obj_num,
+		.len = len,
+		.entries = xref->entries + xref->cur_size,
+		.next_table = NULL,
+	};
 
-	printf("add xref section %zu, obj num=%zu, len=%zu\n", cur, section.obj_num, section.len);
+	if (xref->first_section == NULL) {
+		xref->first_section = section;
+	} else {
+		pindf_xref_table *cur = xref->first_section;
+		while (cur->next_table != NULL) {
+			cur = cur->next_table;
+		}
+		cur->next_table = section;
+	}
 
-	xref->sections[cur] = section;
-	xref->section_start_index[cur] = section.obj_num;
-	xref->section_len[cur] = section.len;
-
+	xref->cur_size += len;
 	xref->n_sections++;
+
+	return section;
 }
+
+// void pindf_xref_addsection(pindf_xref *xref, pindf_xref_table section)
+// {
+// 	assert(xref != NULL && "xref is null");
+// 	assert(xref->n_sections != PINDF_MAX_XREF_SECTIONS && "xref overflow");
+
+// 	size_t cur = xref->n_sections;
+
+// 	printf("add xref section %zu, obj num=%zu, len=%zu\n", cur, section.obj_num, section.len);
+
+// 	xref->sections[cur] = section;
+// 	xref->section_start_index[cur] = section.obj_num;
+// 	xref->section_len[cur] = section.len;
+
+// 	xref->n_sections++;
+// }
