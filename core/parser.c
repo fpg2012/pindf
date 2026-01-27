@@ -219,6 +219,7 @@ int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream, uint6
 	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_STREAM);
 	obj->content.stream.dict = symbol->content.non_term;
 	obj->content.stream.stream_content = stream;
+	obj->content.stream.content_offset = content_offset;
 
 	symbol->content.non_term = obj;
 	
