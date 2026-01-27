@@ -52,12 +52,12 @@ void pindf_uchar_str_destroy_wo_p(pindf_uchar_str *str)
 	free(str);
 }
 
-int pindf_uchar_str_cmp(pindf_uchar_str *a, pindf_uchar_str *b)
+int pindf_uchar_str_cmp(const pindf_uchar_str *a, const pindf_uchar_str *b)
 {
 	return pindf_uchar_str_cmp2(a, b->p, b->len);
 }
 
-int pindf_uchar_str_cmp2(pindf_uchar_str *a, const uchar *b, size_t len)
+int pindf_uchar_str_cmp2(const pindf_uchar_str *a, const uchar *b, size_t len)
 {
 	assert(a != NULL);
 	assert(b != NULL);
@@ -77,4 +77,10 @@ int pindf_uchar_str_cmp2(pindf_uchar_str *a, const uchar *b, size_t len)
 		return 1;
 	}
 	return 0;
+}
+
+int pindf_uchar_str_cmp3(const pindf_uchar_str *a, const char *b)
+{
+	ssize_t len = strlen(b);
+	return pindf_uchar_str_cmp2(a, (const uchar*)b, len);
 }
