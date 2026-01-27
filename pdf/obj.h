@@ -69,4 +69,5 @@ struct pindf_pdf_obj {
 };
 
 pindf_pdf_obj *pindf_pdf_obj_new(enum pindf_pdf_obj_type type);
-pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, pindf_uchar_str *key);
+pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, const uchar *key, size_t key_len);
+pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key);
