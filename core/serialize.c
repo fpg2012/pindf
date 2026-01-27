@@ -127,6 +127,7 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 		break;
 	case PINDF_PDF_BOOL:
 		p += snprintf(p, BUF_REMAIN, "%s", obj->content.boolean ? "true" : "false");
+		break;
 	default:
 		fprintf(stderr, "[error] invalid obj type");
 	}
