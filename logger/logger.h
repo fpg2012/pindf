@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
+#define PINDF_DEFAULT_LEVEL PINDF_LOG_LEVEL_INFO
+
 #define PINDF_ERR(...) \
 	do { \
 		pindf_log(PINDF_LOG_LEVEL_ERROR, __VA_ARGS__); \

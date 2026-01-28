@@ -1,7 +1,18 @@
 #include "logger.h"
 
+static enum pindf_log_level current_log_level = PINDF_DEFAULT_LEVEL;
+
+void pindf_set_log_level(enum pindf_log_level level)
+{
+	current_log_level = level;
+}
+
 void pindf_log(enum pindf_log_level level, const char *fmt, ...)
 {
+	if (level < current_log_level) {
+		return;
+	}
+
 	const char *color_st = NULL;
 
 	const char *level_str = NULL;
