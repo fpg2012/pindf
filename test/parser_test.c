@@ -42,47 +42,10 @@ int main(int argc, const char **argv)
 	
 	pindf_parser_init(parser);
 	pindf_lexer_init(lexer);
-	// === body parse test ===
-	printf("\n=== body parse test ===\n");
-	fseek(f, 0, SEEK_SET);
-	uint64 obj_offset;
-	lexer->offset = 0;
-	
-	int obj_count = 0;
-	while (1) {
-		pindf_pdf_obj *obj = NULL;
-		ret = pindf_parse_one_obj(parser, lexer, f, &obj, &obj_offset, PINDF_PDF_IND_OBJ);
-		if (ret == -3) {
-			break;
-		}
-		if (ret < 0) {
-			fprintf(stderr, "[error] failed to parser one obj, offset=%llu", obj_offset);
-		}
-		
-		
-		++obj_count;
-		pindf_doc_obj_setentry(doc, obj, obj_offset);
-		
-		pindf_vector_pop(parser->symbol_stack, NULL);
-	}
-
-	printf("obj_count: %d\n", obj_count);
-
-	// === serialize to json ===
-	printf("\n=== serialize to json ===\n");
-	char *buf = (char*)malloc(file_len * 2);
-
-	char *p = pindf_doc_serialize_json(doc, buf, file_len*2);
-	printf("buf len: %ld", (p - buf));
-
-	FILE *out = fopen("out.json", "wb");
-	// fwrite(buf, sizeof(char), p - buf, stdout);
-	fwrite(buf, sizeof(char), p - buf, out);
-	fclose(out);
 
 	// === dump xref_table ===
 	printf("\n=== dump xref table ===");
-	out = fopen("xref.txt", "wb");
+	FILE *out = fopen("xref.txt", "wb");
 
 	int n_sections = doc->xref->n_sections;
 

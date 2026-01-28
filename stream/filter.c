@@ -1,4 +1,5 @@
 #include "filter.h"
+#include "../logger/logger.h"
 
 /*
 note
@@ -17,7 +18,7 @@ int pindf_zlib_uncompress(pindf_uchar_str *dest, pindf_uchar_str *src)
 		ret = uncompress(dest->p, &cap, src->p, src->len);
 		if (ret == Z_MEM_ERROR) {
 			if (n_retry >= PINDF_MAX_EXPAND_RETRY) {
-				fprintf(stderr, "[error] used up 2^%d times of mem, still not enough!", PINDF_MAX_EXPAND_RETRY);
+				PINDF_ERR("used up 2^%d times of mem, still not enough!", PINDF_MAX_EXPAND_RETRY);
 				ret = Z_DATA_ERROR;
 				break;
 			}
@@ -44,7 +45,7 @@ int pindf_zlib_compress(pindf_uchar_str *dest, pindf_uchar_str *src)
 		ret = compress(dest->p, &cap, src->p, src->len);
 		if (ret == Z_MEM_ERROR) {
 			if (n_retry >= PINDF_MAX_EXPAND_RETRY) {
-				fprintf(stderr, "[error] used up 2^%d times of mem, still not enough!", PINDF_MAX_EXPAND_RETRY);
+				PINDF_ERR("used up 2^%d times of mem, still not enough!", PINDF_MAX_EXPAND_RETRY);
 				break;
 			}
 			pindf_uchar_str_2xexpand(dest);
@@ -69,7 +70,7 @@ int pindf_filter_init(pindf_stream_filter *filter, enum pindf_filter_type type, 
 		filter->encode = NULL;
 		return 0;
 	} else if (type != PINDF_FLTR_TYPE_FLATEDECODE) {
-		fprintf(stderr, "[error] filter type %d not implemented yet!", type);
+		PINDF_ERR("filter type %d not implemented yet!", type);
 		return -1;
 	} else {
 		filter->decode = pindf_flate_decode;
@@ -115,7 +116,7 @@ int pindf_filter_init(pindf_stream_filter *filter, enum pindf_filter_type type, 
 int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src)
 {
 	if (f->type != PINDF_FLTR_TYPE_FLATEDECODE) {
-		fprintf(stderr, "[error] filter type %d not supported in flate decode!", f->type);
+		PINDF_ERR("filter type %d not supported in flate decode!", f->type);
 		return PINDF_FLTR_DAT_ERR;
 	}
 
@@ -164,7 +165,7 @@ int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 					cur_byte = *p + ((buffer[j - 1] + buffer[j]) / 2);
 					break;
 				default:
-					fprintf(stderr, "[error] unsupported PNG filter type %d\n", filter_type);
+					PINDF_ERR("unsupported PNG filter type %d", filter_type);
 					pindf_uchar_str_destroy(&temp_dest);
 					return PINDF_FLTR_DAT_ERR;
 				}
@@ -179,15 +180,15 @@ int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 		pindf_uchar_str_destroy(&temp_dest);
 		return dest->len;
 	}
-	
-	fprintf(stderr, "[error] predictor %d not implemented in flate decode!", f->decode_params.predictor);
+
+	PINDF_ERR("predictor %d not implemented in flate decode!", f->decode_params.predictor);
 	return PINDF_FLTR_DAT_ERR;
 }
 
 int pindf_flate_encode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src)
 {
 	if (f->type != PINDF_FLTR_TYPE_FLATEDECODE) {
-		fprintf(stderr, "[error] filter type %d not supported in flate encode!", f->type);
+		PINDF_ERR("filter type %d not supported in flate encode!", f->type);
 		return PINDF_FLTR_DAT_ERR;
 	}
 
@@ -195,7 +196,7 @@ int pindf_flate_encode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 		return pindf_zlib_compress(dest, src);
 	}
 
-	fprintf(stderr, "[error] predictor %d not implemented in flate encode!", f->decode_params.predictor);
+	PINDF_ERR("predictor %d not implemented in flate encode!", f->decode_params.predictor);
 	return PINDF_FLTR_DAT_ERR;
 }
 

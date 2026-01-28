@@ -13,6 +13,6 @@ typedef void (*pindf_destroy_func)(void *);
 enum pindf_errno {
 	PINDF_OK = 0,
 	PINDF_EOF_ERR = -1,
-	PINDF_ERR = -2,
+	PINDF_GNR_ERR = -2,
 	PINDF_MEM_ERR = -3
 };

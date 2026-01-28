@@ -1,4 +1,5 @@
 #include "serialize.h"
+#include "../logger/logger.h"
 
 #define BUF_REMAIN (buf_size-(p-buf))
 
@@ -127,7 +128,7 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 		p += snprintf(p, BUF_REMAIN, "%s", obj->content.boolean ? "true" : "false");
 		break;
 	default:
-		fprintf(stderr, "[error] invalid obj type");
+		PINDF_ERR("invalid obj type");
 	}
 	return p;
 }

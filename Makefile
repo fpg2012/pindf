@@ -1,6 +1,7 @@
 SRC = pdf/*.c container/*.c 
 SRC += core/lexer.c core/parser.c core/serialize.c stream/*.c
 SRC += pindf.c
+SRC += logger/logger.c
 CFLAGS += -g -std=c11
 
 ZLIB_CFLAGS := $(shell pkg-config --cflags zlib 2>/dev/null || echo "-I/usr/local/include")

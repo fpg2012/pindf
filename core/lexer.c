@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "../logger/logger.h"
 
 const char *pindf_lexer_keyword_list[] = {
 	"",
@@ -39,8 +40,8 @@ static int _prev_state_emit[] = {
 void _append_ch(pindf_lexer *lexer, char ch)
 {
 	if (lexer->buf_end == PINDF_LEXER_BUFSIZE) {
-		perror("lexer buffer overflow!");
-		fprintf(stderr, "current state: %d\n", lexer->state);
+		PINDF_ERR("lexer buffer overflow!");
+		PINDF_ERR("current state: %d", lexer->state);
 		exit(0);
 	}
 	if (lexer->buf_end == 0) {
@@ -226,14 +227,13 @@ pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file)
 				lexer->state = PINDF_LEXER_STATE_IN_HEX_STR;
 				break;
 			case '>':
-				if (lexer->state == PINDF_LEXER_STATE_DELIM) {
-					uchar last_char;
-					if (_last_char(lexer, &last_char) == 0 && last_char == '>') {
-						_append_ch(lexer, ch);
-						emit = PINDF_LEXER_EMIT_DELIM;
-						emit_str = _emit(lexer);
-						lexer->state = PINDF_LEXER_STATE_DEFAULT;
-					}
+				;
+				uchar last_char;
+				if (lexer->state == PINDF_LEXER_STATE_DELIM && _last_char(lexer, &last_char) == 0 && last_char == '>') {
+					_append_ch(lexer, ch);
+					emit = PINDF_LEXER_EMIT_DELIM;
+					emit_str = _emit(lexer);
+					lexer->state = PINDF_LEXER_STATE_DEFAULT;
 				} else {
 					emit = _prev_state_emit[lexer->prev_state];
 					emit_str = _emit(lexer);

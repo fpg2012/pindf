@@ -1,4 +1,5 @@
 #include "obj.h"
+#include "../logger/logger.h"
 
 pindf_pdf_obj *pindf_pdf_obj_new(enum pindf_pdf_obj_type obj_type)
 {
@@ -21,7 +22,7 @@ pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, const uchar *key, size_
 	for (pindf_pdf_obj **p = beg; p != end; ++p, ++index) {
 		cur_key = *p;
 		if (cur_key->obj_type != PINDF_PDF_NAME) {
-			fprintf(stderr, "[error] non-name dict key\n");
+			PINDF_ERR("non-name dict key");
 			return NULL;
 		}
 		if (pindf_uchar_str_cmp2(cur_key->content.name, key, key_len) == 0) {
@@ -48,7 +49,7 @@ pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key)
 	for (pindf_pdf_obj **p = beg; p != end; ++p, ++index) {
 		cur_key = *p;
 		if (cur_key->obj_type != PINDF_PDF_NAME) {
-			fprintf(stderr, "[error] non-name dict key\n");
+			PINDF_ERR("non-name dict key");
 			return NULL;
 		}
 		if (pindf_uchar_str_cmp2(cur_key->content.name, (const uchar*)key, len) == 0) {

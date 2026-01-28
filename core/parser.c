@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "../logger/logger.h"
 
 #define ASSERT_EMPTY_STACK() \
 	do { if (parser->symbol_stack->len == 0) { perror("empty stack!"); return -1; } } while(0)
@@ -20,7 +21,7 @@
 			symbol->content.term->event == PINDF_LEXER_EMIT_DELIM && \
 			symbol->content.term->raw_str->p[0] == delim) \
 		) { \
-			fprintf(stderr, "[reduce %s] no delim %c found", reduce_type, delim); \
+			PINDF_ERR("(reduce %s) no delim %c found", reduce_type, delim); \
 			return -1; \
 		} \
 	++p; } while(0)
@@ -28,7 +29,7 @@
 	do { \
 		pindf_vector_index(parser->symbol_stack, p, &symbol); \
 		if (symbol->type != PINDF_SYMBOL_NONTERM) { \
-			fprintf(stderr, "[reduce %s] invalid obj", reduce_type); \
+			PINDF_ERR("(reduce %s) invalid obj", reduce_type); \
 			return -1; \
 		} \
 		++p; \
@@ -36,7 +37,7 @@
 #define FULL_REDUCE_CHECK(reduce_type) \
 	do { \
 		if (p != parser->symbol_stack->len) { \
-			fprintf(stderr, "[reduce %s] there is something remain in stack ", reduce_type); \
+			PINDF_ERR("(reduce %s) there is something remain in stack ", reduce_type); \
 			return -1; \
 		} \
 	} while (0)
@@ -300,10 +301,10 @@ int pindf_parser_add_token(pindf_parser *parser, pindf_token *token)
 			} else if (token->kwd == PINDF_KWD_stream || token->kwd == PINDF_KWD_endstream) {
 				pindf_vector_pop(parser->symbol_stack, NULL);
 			} else {
-				fprintf(stderr, "invalid usage of keyword %s", token->raw_str->p);
+				PINDF_ERR("invalid usage of keyword %s", token->raw_str->p);
 			}
 		} else {
-			fprintf(stderr, "[error] unrecognized regular token %s", token->raw_str->p);
+			PINDF_ERR("unrecognized regular token %s", token->raw_str->p);
 			return -1;
 		}
 		break;

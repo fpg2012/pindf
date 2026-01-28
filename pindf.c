@@ -1,9 +1,10 @@
 #include "pindf.h"
+#include "logger/logger.h"
 
 #define MATCH_INT_TOKEN_OR_ERR(result, token) \
 	do { \
 		if (token->event != PINDF_LEXER_EMIT_REGULAR || token->reg_type != PINDF_LEXER_REGTYPE_INT) { \
-			fprintf(stderr, "[error] failed to parse xref, failed to match integer\n"); \
+			PINDF_ERR("failed to parse xref, failed to match integer"); \
 			return -1; \
 		} \
 		result = atoll((char*)token->raw_str->p); \
@@ -11,20 +12,20 @@
 #define MATCH_nf_TOKEN_OR_ERR(result, token) \
 	do { \
 		if (token->event != PINDF_LEXER_EMIT_REGULAR || token->reg_type != PINDF_LEXER_REGTYPE_KWD) { \
-			fprintf(stderr, "[error] failed to parse xref, failed to match keyword\n"); \
+			PINDF_ERR("failed to parse xref, failed to match keyword"); \
 			return -1; \
 		} \
 		if (token->kwd == PINDF_KWD_n || token->kwd == PINDF_KWD_f) { \
 			result = token->kwd; \
 		} else { \
-			fprintf(stderr, "[error] failed to parse xref, invalid keyword\n"); \
+			PINDF_ERR("failed to parse xref, invalid keyword"); \
 			return -1; \
 		} \
 	} while (0)
 #define MATCH_EOL_TOKEN_OR_ERR(token) \
 	do { \
 		if (token->event != PINDF_LEXER_EMIT_EOL) { \
-			fprintf(stderr, "[error] failed to parse xref\n"); \
+			PINDF_ERR("failed to parse xref"); \
 			return -1; \
 		} \
 	} while (0)
@@ -33,7 +34,7 @@
 	do { \
 		temp_obj = pindf_dict_getvalue2(&trailer, key); \
 		if (temp_obj == NULL || temp_obj->obj_type != PINDF_PDF_##TYPE) { \
-			fprintf(stderr, "[error] invalid type of %s: %d\n", key, PINDF_PDF_##TYPE); \
+			PINDF_ERR("invalid type of %s: %d", key, PINDF_PDF_##TYPE); \
 			return -1; \
 		} \
 		var = temp_obj->content.val; \
@@ -43,7 +44,7 @@
 do { \
 	temp_obj = pindf_dict_getvalue2(&trailer, key); \
 	if (temp_obj != NULL && temp_obj->obj_type != PINDF_PDF_##TYPE) { \
-		fprintf(stderr, "[error] invalid type of %s: %d\n", key, PINDF_PDF_##TYPE); \
+		PINDF_ERR("invalid type of %s: %d", key, PINDF_PDF_##TYPE); \
 		return -1; \
 	} \
 	if (temp_obj == NULL) { \
@@ -72,6 +73,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		token = pindf_lex_options(lexer, fp, options | PINDF_LEXER_OPT_IGNORE_EOL);
 
 		if (token->event < 0) {
+			PINDF_ERR("failed to parse xref table, unexpected lexer error");
 			return -1;
 		}
 	} while (!(token->event == PINDF_LEXER_EMIT_REGULAR &&
@@ -80,11 +82,15 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 
 	// trailer
 	int ret = pindf_parse_one_obj(parser, lexer, fp, &trailer_obj, NULL, PINDF_PDF_DICT);
-	if (ret < 0)
+	if (ret < 0) {
+		PINDF_ERR("failed to parse trailer dict, not a valid PDF object");
 		return -1;
+	}
 
-	if (trailer_obj->obj_type != PINDF_PDF_DICT)
+	if (trailer_obj->obj_type != PINDF_PDF_DICT) {
+		PINDF_ERR("trailer is not a dict!");
 		return -1;
+	}
 
 	pindf_pdf_dict trailer = trailer_obj->content.dict;
 
@@ -96,7 +102,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		pindf_pdf_obj *size_obj = NULL;
 		size_obj = pindf_dict_getvalue2(&trailer, "/Size");
 		if (size_obj == NULL || size_obj->obj_type != PINDF_PDF_INT) {
-			fprintf(stderr, "[error] invalid type of /Size in trailer\n");
+			PINDF_ERR("invalid type of /Size in trailer");
 			return -1;
 		}
 		size_t size = size_obj->content.num;
@@ -113,7 +119,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		temp_obj = pindf_dict_getvalue2(&trailer, "/Prev");
 		if (temp_obj != NULL) {
 			if (temp_obj->obj_type != PINDF_PDF_INT) {
-				fprintf(stderr, "[error] invalid type of /Prev in trailer\n");
+				PINDF_ERR("invalid type of /Prev in trailer");
 				return -1;
 			}
 			prev_offset = temp_obj->content.num;
@@ -131,6 +137,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		token = pindf_lex_options(lexer, fp, options | PINDF_LEXER_OPT_IGNORE_EOL);
 
 		if (token->event < 0) {
+			PINDF_ERR("failed to parse xref table, unexpected lexer error");
 			return -1;
 		}
 		if (token->event == PINDF_LEXER_EMIT_REGULAR &&
@@ -179,7 +186,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 {
 	pindf_pdf_obj *xref_stream = obj->content.indirect_obj.obj;
 	if (xref_stream->obj_type != PINDF_PDF_STREAM) {
-		fprintf(stderr, "[error] xref stream is not a stream!");
+		PINDF_ERR("xref stream is not a stream!");
 		return -1;
 	}
 	pindf_pdf_dict trailer = xref_stream->content.stream.dict->content.dict;
@@ -207,7 +214,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 	
 	// prev_offset
 	GET_VALUE_OR_DEFAULT("/Prev", prev_offset, num, INT, -1);
-	printf("prev: %d\n", prev_offset);
+	PINDF_DEBUG("prev: %d", prev_offset);
 
 	// W
 	temp_obj = pindf_dict_getvalue2(&trailer, "/W");
@@ -264,7 +271,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 
 			if (decode_params_obj != NULL) {
 				if (decode_params_obj->obj_type != PINDF_PDF_DICT) {
-					fprintf(stderr, "[error] decode params type invalid\n");
+					PINDF_ERR("decode params type invalid");
 					return -1;
 				}
 				decode_param_array[0] = &decode_params_obj->content.dict;
@@ -284,14 +291,14 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 				if (decode_params_obj->obj_type != PINDF_PDF_ARRAY ||
 					decode_params_obj->content.array->len != n_filters
 				) {
-					fprintf(stderr, "[error] decode params type invalid\n");
+					PINDF_ERR("decode params type invalid");
 					return -1;
 				}
 				for (int i = 0; i < n_filters; ++i) {
 					pindf_pdf_obj *temp3;
 					pindf_vector_index(decode_params_obj->content.array, i, &temp3);
 					if (temp3->obj_type != PINDF_PDF_DICT) {
-						fprintf(stderr, "[error] decode params type invalid\n");
+						PINDF_ERR("decode params type invalid");
 						return -1;
 					}
 					decode_param_array[i] = &temp3->content.dict;
@@ -322,13 +329,13 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 
 		ret = pindf_filter_init(&_f, filter_array[i], decode_param_array[i]);
 		if (ret < 0) {
-			fprintf(stderr, "[error] failed to init filter %d\n", filter_array[i]);
+			PINDF_ERR("failed to init filter %d", filter_array[i]);
 			return ret;
 		}
 
 		ret = _f.decode(&_f, buffer_out, buffer_in);
 		if (ret < 0) {
-			fprintf(stderr, "[error] failed to decode xref stream with filter %d\n", filter_array[i]);
+			PINDF_ERR("failed to decode xref stream with filter %d", filter_array[i]);
 			return -1;
 		}
 	}
@@ -351,7 +358,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 	
 	for (int i = 0; i < n_entries; ++i) {
 		if (i == cur_section_first_entry) {
-			printf("alloc section %d (st=%d len=%d)\n", cur_section, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
+			PINDF_DEBUG("alloc section %d (st=%d len=%d)", cur_section, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
 			section = pindf_xref_alloc_section(doc->xref, index_pairs[cur_section * 2], index_pairs[cur_section * 2 + 1]);
 		}
 
@@ -361,12 +368,11 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 				temp_arr[j] = (temp_arr[j] << 8) + *q;
 			}
 		}
-		printf("%llx %llx %llx\n", temp_arr[0], temp_arr[1], temp_arr[2]);
+		PINDF_DEBUG("%llx %llx %llx", temp_arr[0], temp_arr[1], temp_arr[2]);
 		pindf_xref_table_setentry(section, i - cur_section_first_entry, temp_arr[1], temp_arr[2], temp_arr[0]);
 
 		if (i + 1 >= cur_section_first_entry + index_pairs[cur_section * 2 + 1]) {
-			printf("add section %d\n", cur_section);
-
+			PINDF_DEBUG("add section %d", cur_section);
 			++cur_section;
 			cur_section_first_entry = i + 1;
 		}
@@ -385,7 +391,7 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 	int prev = (int)startxref;
 	int ret = 0;
 	do {
-		printf("\033[1;32mparse xref at offset %d\033[0m\n", prev);
+		PINDF_DEBUG("parse xref at offset %d", prev);
 		pindf_parser_init(parser);
 		pindf_lexer_init(lexer);
 		fseek(fp, prev, SEEK_SET);
@@ -408,10 +414,12 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 				} else if (token->reg_type == PINDF_LEXER_REGTYPE_INT) {
 					stream_xref = 2;
 				} else {
+					PINDF_ERR("invalid xref, neither table nor stream");
 					return -1;
 				}
 				break;
 			default:
+				PINDF_ERR("invalid xref, neither table nor stream");
 				return -1;
 			}
 		} while(stream_xref == 0);
@@ -419,14 +427,22 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 		if (stream_xref == 1) {
 			// xref table
 			ret = _parse_xref_table(parser, lexer, fp, doc, &prev);
+			if (ret < 0) {
+				PINDF_ERR("failed to parse xref table");
+				return ret;
+			}
 		} else {
 			// stream xref
 			pindf_parser_add_token(parser, token);
 			pindf_pdf_obj *obj = NULL;
 			ret = pindf_parse_one_obj(parser, lexer, fp, &obj, NULL, PINDF_PDF_IND_OBJ);
-			if (ret < 0)
+			if (ret < 0) {
 				return ret;
+			}
 			ret = pindf_parse_xref_obj(doc, obj, &prev);
+			if (ret < 0) {
+				PINDF_ERR("failed to parse xref stream object");
+			}
 		}
 	} while (prev != -1 && ret >= 0);
 	return ret;
@@ -461,7 +477,6 @@ uint64 pindf_quick_match_startxref(FILE *fp, uint64 file_len_ptr)
 			break;
 		}
 		ch = ch_int;
-		// printf("state=%d, ch=%c\n", state, ch);
 
 		switch (ch) {
 		case '\0':
@@ -502,7 +517,7 @@ int pindf_file_parse(pindf_parser *parser, FILE *fp, uint64 file_len, pindf_doc 
 	assert(file_len != 0);
 	size_t cur_offset_fp = ftell(fp);
 	if (cur_offset_fp != 0) {
-		fprintf(stderr, "[warning] file_parse not start from the beginning!");
+		PINDF_WARN("file_parse not start from the beginning!");
 	}
 
 	pindf_doc *doc = pindf_doc_new("PDF-1.7", fp);
@@ -520,7 +535,7 @@ int pindf_file_parse(pindf_parser *parser, FILE *fp, uint64 file_len, pindf_doc 
 		p[token->raw_str->len] = '\0';
 		doc->pdf_version = p;
 	} else {
-		fprintf(stderr, "[warning] PDF Version not found! defaulted to %s", "PDF-1.7");
+		PINDF_WARN("PDF Version not found! defaulted to %s", "PDF-1.7");
 	}
 
 	// startxref
@@ -534,7 +549,7 @@ int pindf_file_parse(pindf_parser *parser, FILE *fp, uint64 file_len, pindf_doc 
 			xref_offset = atoll((const char*)token->raw_str->p);
 			break;
 		} else {
-			fprintf(stderr, "[error] Invalid startref!");
+			PINDF_ERR("Invalid startref!");
 			return -1;
 		}
 	}
@@ -543,7 +558,7 @@ int pindf_file_parse(pindf_parser *parser, FILE *fp, uint64 file_len, pindf_doc 
 	// xref
 	ret = pindf_parse_xref(parser, lexer, fp, doc, xref_offset);
 	if (ret < 0) {
-		fprintf(stderr, "[error] failed to parser xref table");
+		PINDF_ERR("failed to parse xref");
 		return ret;
 	}
 	
@@ -566,6 +581,7 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 		token = pindf_lex_options(lexer, f, options);
 
 		if (token->event < 0) {
+			PINDF_ERR("failed to parse object, unexpected lexer error");
 			return -1;
 		}
 		if (token->event == PINDF_LEXER_EMIT_REGULAR &&
@@ -575,6 +591,7 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 			case PINDF_KWD_startxref:
 			case PINDF_KWD_xref:
 			case PINDF_KWD_trailer:
+				PINDF_ERR("unexpected keyword while parsing object: %d", token->kwd);
 				return -3;
 			default:
 				;
@@ -610,7 +627,7 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 			} else if (token->event == PINDF_LEXER_EMIT_WHITE_SPACE || token->event == PINDF_LEXER_EMIT_EOL) {
 				;
 			} else {
-				perror("wrong length");
+				PINDF_ERR("stream wrong length");
 				return -1;
 			}
 		} else if (stream_state == 2) {
@@ -620,7 +637,7 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 			) {
 				token = pindf_lex(lexer, f);
 				if (token->event != PINDF_LEXER_EMIT_EOL) {
-					perror("no EOL follow stream keyword");
+					PINDF_ERR("no EOL follow stream keyword");
 					return -1;
 				}
 				pindf_uchar_str *stream = pindf_uchar_str_new();
@@ -640,7 +657,7 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 			) {
 				stream_state = 0;
 			} else {
-				perror("stream keyword not followed by an EOL");
+				PINDF_ERR("stream keyword not followed by an EOL");
 				return -1;
 			}
 		} 
