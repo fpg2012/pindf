@@ -65,7 +65,7 @@ int _reduce_array(pindf_parser *parser)
 {
 	size_t beg = parser->reduce_pos, p = beg;
 	size_t cap = parser->symbol_stack->len - beg;
-	pindf_vector *vec = pindf_vector_new(cap, sizeof(pindf_pdf_obj*), NULL);
+	pindf_vector *vec = pindf_vector_new(cap, sizeof(pindf_pdf_obj*));
 
 	pindf_symbol *symbol;
 	MATCH_DELIM_OR_ERR("array", '[');
@@ -96,8 +96,8 @@ int _reduce_dict(pindf_parser *parser)
 	pindf_symbol *symbol;
 
 	size_t cap = (parser->symbol_stack->len - beg) / 2 + 1;
-	pindf_vector *keys = pindf_vector_new(cap, sizeof(pindf_pdf_obj*), NULL);
-	pindf_vector *values = pindf_vector_new(cap, sizeof(pindf_pdf_obj*), NULL);
+	pindf_vector *keys = pindf_vector_new(cap, sizeof(pindf_pdf_obj*));
+	pindf_vector *values = pindf_vector_new(cap, sizeof(pindf_pdf_obj*));
 
 	MATCH_DELIM_OR_ERR("dict", '<');
 	uint64 offset = symbol->offset;
@@ -248,8 +248,8 @@ pindf_parser *pindf_parser_new()
 {
 	pindf_parser *parser = (pindf_parser*)malloc(sizeof(pindf_parser));
 	
-	parser->symbol_stack = pindf_vector_new(32768, sizeof(pindf_symbol*), NULL);
-	parser->reduce_pos_stack = pindf_vector_new(1024, sizeof(int), NULL);
+	parser->symbol_stack = pindf_vector_new(32768, sizeof(pindf_symbol*));
+	parser->reduce_pos_stack = pindf_vector_new(1024, sizeof(int));
 
 	// parser->file_part_state = 0;
 
@@ -348,7 +348,7 @@ int pindf_parser_add_token(pindf_parser *parser, pindf_token *token)
 	return ret;
 }
 
-void pindf_parser_destroy(void *parser)
+void pindf_parser_destroy(pindf_parser *parser)
 {
 	pindf_parser *parser_ = (pindf_parser *)parser;
 	pindf_vector_destroy(parser_->symbol_stack);

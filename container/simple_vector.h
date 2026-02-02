@@ -9,11 +9,10 @@ typedef struct {
 	size_t len;
 	size_t capacity;
 	size_t elem_size;
-	pindf_destroy_func destroy_func;
 } pindf_vector;
 
-pindf_vector *pindf_vector_new(size_t capacity, size_t elem_size, pindf_destroy_func destroy_func);
-void pindf_vector_init(pindf_vector *vec, size_t capacity, size_t elem_size, pindf_destroy_func destroy_func);
+pindf_vector *pindf_vector_new(size_t capacity, size_t elem_size);
+void pindf_vector_init(pindf_vector *vec, size_t capacity, size_t elem_size);
 void pindf_vector_append(pindf_vector *vec, void *item);
 void pindf_vector_pop(pindf_vector *vec, void *item);
 void pindf_vector_last_elem(pindf_vector *vec, void *item);

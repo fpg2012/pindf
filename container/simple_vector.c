@@ -2,21 +2,19 @@
 #include <stdlib.h>
 #include <assert.h>
 
-pindf_vector *pindf_vector_new(size_t capacity, size_t elem_size, pindf_destroy_func destroy_func)
+pindf_vector *pindf_vector_new(size_t capacity, size_t elem_size)
 {
 	pindf_vector *vec = (pindf_vector *)malloc(sizeof(pindf_vector));
-	pindf_vector_init(vec, capacity, elem_size, destroy_func);
+	pindf_vector_init(vec, capacity, elem_size);
 	return vec;
 }
 
-void pindf_vector_init(pindf_vector *vec, size_t capacity, size_t elem_size, pindf_destroy_func destroy_func)
+void pindf_vector_init(pindf_vector *vec, size_t capacity, size_t elem_size)
 {
 	vec->buf = (uchar*)calloc(capacity + 1, elem_size);
 	vec->len = 0;
 	vec->capacity = capacity;
 	vec->elem_size = elem_size;
-
-	vec->destroy_func = destroy_func;
 }
 
 void pindf_vector_append(pindf_vector *vec, void *item)
@@ -39,19 +37,12 @@ void pindf_vector_pop(pindf_vector *vec, void *item)
 	if (item != NULL) {
 		memcpy(item, vec->buf + (vec->len)*vec->elem_size, vec->elem_size);
 	}
-	if (vec->destroy_func) {
-		vec->destroy_func(vec->buf + vec->len*vec->elem_size);
-	}
 }
 
 void pindf_vector_destroy(pindf_vector *vec)
 {
 	void *end = vec->buf + vec->len*vec->elem_size;
-	for (void *p; p != end; p++) {
-		vec->destroy_func(p);
-	}
 	free(vec->buf);
-	free(vec);
 }
 
 void pindf_vector_last_elem(pindf_vector *vec, void *item)

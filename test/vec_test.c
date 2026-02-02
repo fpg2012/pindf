@@ -2,7 +2,7 @@
 #include "../container/simple_vector.h"
 
 int main() {
-	pindf_vector *vec = pindf_vector_new(10, sizeof(int), NULL);
+	pindf_vector *vec = pindf_vector_new(10, sizeof(int));
 	
 	int temp = 0;
 	for (int i = 0; i < 10; ++i) {
