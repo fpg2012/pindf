@@ -434,6 +434,8 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 		} else {
 			// stream xref
 			pindf_parser_add_token(parser, token);
+			free(token);
+			
 			pindf_pdf_obj *obj = NULL;
 			ret = pindf_parse_one_obj(parser, lexer, fp, &obj, NULL, PINDF_PDF_IND_OBJ);
 			if (ret < 0) {
