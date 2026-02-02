@@ -97,6 +97,161 @@ pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len)
 	return str;
 }
 
+int _update_state(pindf_lexer *lexer, uchar ch, int *emit, pindf_uchar_str **emit_str)
+{
+	if (lexer->state == PINDF_LEXER_STATE_IN_LTR_STR) {
+		switch (ch) {
+		case '\\':
+			_append_ch(lexer, ch);
+			lexer->state = PINDF_LEXER_STATE_IN_LTR_STR_ESC;
+			break;
+		case ')':
+			lexer->string_level--;
+			if (lexer->string_level == 0) {
+				*emit = PINDF_LEXER_EMIT_LTR_STR;
+				*emit_str = _emit(lexer);
+				lexer->state = PINDF_LEXER_STATE_DEFAULT;
+			} else {
+				_append_ch(lexer, ch);
+			}
+			break;
+		case '(':
+			lexer->string_level++;
+		default:
+			_append_ch(lexer, ch);
+		}
+	} else if (lexer->state == PINDF_LEXER_STATE_IN_LTR_STR_ESC) {
+		_append_ch(lexer, ch);
+		lexer->state = PINDF_LEXER_STATE_IN_LTR_STR;
+	} else if (lexer->state == PINDF_LEXER_STATE_IN_HEX_STR) {
+		if (ch == '<') {
+			_append_ch(lexer, '<');
+			_append_ch(lexer, '<');
+			*emit = PINDF_LEXER_EMIT_DELIM;
+			*emit_str = _emit(lexer);
+			
+			lexer->state = PINDF_LEXER_STATE_DEFAULT;
+		} else if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z')) {
+			_append_ch(lexer, ch);
+		} else if (ch == '>') {
+			*emit = PINDF_LEXER_EMIT_HEX_STR;
+			*emit_str = _emit(lexer);
+			lexer->state = PINDF_LEXER_STATE_DEFAULT;
+		} else {
+			*emit = PINDF_LEXER_EMIT_ERR;
+		}
+	} else if (lexer->state == PINDF_LEXER_STATE_IN_COMMENT) {
+		switch (ch) {
+			case '\n':
+				*emit = PINDF_LEXER_EMIT_COMMENT;
+				*emit_str = _emit(lexer);
+				lexer->state = PINDF_LEXER_STATE_OUT_EOL;
+				break;
+			case '\r':
+				*emit = PINDF_LEXER_EMIT_COMMENT;
+				*emit_str = _emit(lexer);				
+				lexer->state = PINDF_LEXER_STATE_IN_EOL;
+				break;
+			default:
+				_append_ch(lexer, ch);
+		}
+	} else {
+		switch (ch) {
+		case '\0':
+		case '\t':
+		case 12:
+		case ' ':
+			switch (lexer->state) {
+			case PINDF_LEXER_STATE_WHITE_SPACE:
+				break;
+			default:
+				*emit = _prev_state_emit[lexer->prev_state];
+				*emit_str = _emit(lexer);
+				lexer->state = PINDF_LEXER_STATE_WHITE_SPACE;
+			}
+			break;
+		case '\n':
+			if (lexer->state == PINDF_LEXER_STATE_IN_EOL) {
+				lexer->state = PINDF_LEXER_STATE_OUT_EOL;
+			} else {
+				*emit = _prev_state_emit[lexer->prev_state];
+				*emit_str = _emit(lexer);
+				lexer->state = PINDF_LEXER_STATE_OUT_EOL;
+			}
+			break;
+		case '\r':
+			*emit = _prev_state_emit[lexer->prev_state];
+			*emit_str = _emit(lexer);				
+			lexer->state = PINDF_LEXER_STATE_IN_EOL;
+			break;
+		case '(':
+			lexer->string_level = 1;
+			*emit = _prev_state_emit[lexer->prev_state];
+			*emit_str = _emit(lexer);
+			lexer->state = PINDF_LEXER_STATE_IN_LTR_STR;
+			break;
+		case ')':
+			*emit = PINDF_LEXER_EMIT_ERR;
+			break;
+		case '<':
+			*emit = _prev_state_emit[lexer->prev_state];
+			*emit_str = _emit(lexer);
+			lexer->state = PINDF_LEXER_STATE_IN_HEX_STR;
+			break;
+		case '>':
+			;
+			uchar last_char;
+			if (lexer->state == PINDF_LEXER_STATE_DELIM && _last_char(lexer, &last_char) == 0 && last_char == '>') {
+				_append_ch(lexer, ch);
+				*emit = PINDF_LEXER_EMIT_DELIM;
+				*emit_str = _emit(lexer);
+				lexer->state = PINDF_LEXER_STATE_DEFAULT;
+			} else {
+				*emit = _prev_state_emit[lexer->prev_state];
+				*emit_str = _emit(lexer);
+				
+				lexer->state = PINDF_LEXER_STATE_DELIM;
+				_append_ch(lexer, ch);
+			}
+			break;
+		case '[':
+		case ']':
+			*emit = _prev_state_emit[lexer->prev_state];
+			*emit_str = _emit(lexer);
+
+			_append_ch(lexer, ch);
+			lexer->state = PINDF_LEXER_STATE_DELIM;
+			break;
+		case '/':
+			*emit = _prev_state_emit[lexer->prev_state];
+			*emit_str = _emit(lexer);
+
+			_append_ch(lexer, ch);
+			lexer->state = PINDF_LEXER_STATE_IN_NAME;
+			break;
+		case '%':
+			*emit = _prev_state_emit[lexer->prev_state];
+			*emit_str = _emit(lexer);
+
+			lexer->state = PINDF_LEXER_STATE_IN_COMMENT;
+			break;
+		default:
+			if (lexer->state == PINDF_LEXER_STATE_REGULAR) {
+				_append_ch(lexer, ch);
+			} else if (lexer->state == PINDF_LEXER_STATE_IN_NAME) {
+				_append_ch(lexer, ch);
+			} else {
+				*emit = _prev_state_emit[lexer->prev_state];
+				*emit_str = _emit(lexer);
+
+				lexer->state = PINDF_LEXER_STATE_REGULAR;
+				_append_ch(lexer, ch);
+			}
+		}
+	}
+	return 0;
+}
+
 pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file)
 {
 	uchar ch;
@@ -126,156 +281,10 @@ pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file)
 		}
 		ch = (uchar)status;
 		
-
-		if (lexer->state == PINDF_LEXER_STATE_IN_LTR_STR) {
-			switch (ch) {
-			case '\\':
-				_append_ch(lexer, ch);
-				lexer->state = PINDF_LEXER_STATE_IN_LTR_STR_ESC;
-				break;
-			case ')':
-				lexer->string_level--;
-				if (lexer->string_level == 0) {
-					emit = PINDF_LEXER_EMIT_LTR_STR;
-					emit_str = _emit(lexer);
-					lexer->state = PINDF_LEXER_STATE_DEFAULT;
-				} else {
-					_append_ch(lexer, ch);
-				}
-				break;
-			case '(':
-				lexer->string_level++;
-			default:
-				_append_ch(lexer, ch);
-			}
-		} else if (lexer->state == PINDF_LEXER_STATE_IN_LTR_STR_ESC) {
-			_append_ch(lexer, ch);
-			lexer->state = PINDF_LEXER_STATE_IN_LTR_STR;
-		} else if (lexer->state == PINDF_LEXER_STATE_IN_HEX_STR) {
-			if (ch == '<') {
-				_append_ch(lexer, '<');
-				_append_ch(lexer, '<');
-				emit = PINDF_LEXER_EMIT_DELIM;
-				emit_str = _emit(lexer);
-				
-				lexer->state = PINDF_LEXER_STATE_DEFAULT;
-			} else if ((ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z')) {
-				_append_ch(lexer, ch);
-			} else if (ch == '>') {
-				emit = PINDF_LEXER_EMIT_HEX_STR;
-				emit_str = _emit(lexer);
-				lexer->state = PINDF_LEXER_STATE_DEFAULT;
-			} else {
-				emit = PINDF_LEXER_EMIT_ERR;
-			}
-		} else if (lexer->state == PINDF_LEXER_STATE_IN_COMMENT) {
-			switch (ch) {
-				case '\n':
-					emit = PINDF_LEXER_EMIT_COMMENT;
-					emit_str = _emit(lexer);
-					lexer->state = PINDF_LEXER_STATE_OUT_EOL;
-					break;
-				case '\r':
-					emit = PINDF_LEXER_EMIT_COMMENT;
-					emit_str = _emit(lexer);				
-					lexer->state = PINDF_LEXER_STATE_IN_EOL;
-					break;
-				default:
-					_append_ch(lexer, ch);
-			}
-		} else {
-			switch (ch) {
-			case '\0':
-			case '\t':
-			case 12:
-			case ' ':
-				switch (lexer->state) {
-				case PINDF_LEXER_STATE_WHITE_SPACE:
-					break;
-				default:
-					emit = _prev_state_emit[lexer->prev_state];
-					emit_str = _emit(lexer);
-					lexer->state = PINDF_LEXER_STATE_WHITE_SPACE;
-				}
-				break;
-			case '\n':
-				if (lexer->state == PINDF_LEXER_STATE_IN_EOL) {
-					lexer->state = PINDF_LEXER_STATE_OUT_EOL;
-				} else {
-					emit = _prev_state_emit[lexer->prev_state];
-					emit_str = _emit(lexer);
-					lexer->state = PINDF_LEXER_STATE_OUT_EOL;
-				}
-				break;
-			case '\r':
-				emit = _prev_state_emit[lexer->prev_state];
-				emit_str = _emit(lexer);				
-				lexer->state = PINDF_LEXER_STATE_IN_EOL;
-				break;
-			case '(':
-				lexer->string_level = 1;
-				emit = _prev_state_emit[lexer->prev_state];
-				emit_str = _emit(lexer);
-				lexer->state = PINDF_LEXER_STATE_IN_LTR_STR;
-				break;
-			case ')':
-				emit = PINDF_LEXER_EMIT_ERR;
-				break;
-			case '<':
-				emit = _prev_state_emit[lexer->prev_state];
-				emit_str = _emit(lexer);
-				lexer->state = PINDF_LEXER_STATE_IN_HEX_STR;
-				break;
-			case '>':
-				;
-				uchar last_char;
-				if (lexer->state == PINDF_LEXER_STATE_DELIM && _last_char(lexer, &last_char) == 0 && last_char == '>') {
-					_append_ch(lexer, ch);
-					emit = PINDF_LEXER_EMIT_DELIM;
-					emit_str = _emit(lexer);
-					lexer->state = PINDF_LEXER_STATE_DEFAULT;
-				} else {
-					emit = _prev_state_emit[lexer->prev_state];
-					emit_str = _emit(lexer);
-					
-					lexer->state = PINDF_LEXER_STATE_DELIM;
-					_append_ch(lexer, ch);
-				}
-				break;
-			case '[':
-			case ']':
-				emit = _prev_state_emit[lexer->prev_state];
-				emit_str = _emit(lexer);
-
-				_append_ch(lexer, ch);
-				lexer->state = PINDF_LEXER_STATE_DELIM;
-				break;
-			case '/':
-				emit = _prev_state_emit[lexer->prev_state];
-				emit_str = _emit(lexer);
-
-				_append_ch(lexer, ch);
-				lexer->state = PINDF_LEXER_STATE_IN_NAME;
-				break;
-			case '%':
-				emit = _prev_state_emit[lexer->prev_state];
-				emit_str = _emit(lexer);
-
-				lexer->state = PINDF_LEXER_STATE_IN_COMMENT;
-				break;
-			default:
-				if (lexer->state == PINDF_LEXER_STATE_REGULAR) {
-					_append_ch(lexer, ch);
-				} else if (lexer->state == PINDF_LEXER_STATE_IN_NAME) {
-					_append_ch(lexer, ch);
-				} else {
-					emit = _prev_state_emit[lexer->prev_state];
-					emit_str = _emit(lexer);
-
-					lexer->state = PINDF_LEXER_STATE_REGULAR;
-					_append_ch(lexer, ch);
-				}
-			}
+		int ret = _update_state(lexer, ch, &emit, &emit_str);
+		if (ret < 0) {
+			emit = PINDF_LEXER_EMIT_ERR;
+			break;
 		}
 	}
 
@@ -419,6 +428,67 @@ pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options)
 	do {
 		ignore = 0;
 		token = pindf_lex(lexer, file);
+
+		ignore |= token->event == PINDF_LEXER_EMIT_WHITE_SPACE && (options & PINDF_LEXER_OPT_IGNORE_WS);
+		ignore |= token->event == PINDF_LEXER_EMIT_COMMENT && (options & PINDF_LEXER_OPT_IGNORE_CMT);
+		ignore |= token->event == PINDF_LEXER_EMIT_EOL && (options & PINDF_LEXER_OPT_IGNORE_EOL);
+		ignore |= token->event == PINDF_LEXER_NO_EMIT && (options & PINDF_LEXER_NO_EMIT);
+	} while (ignore);
+	return token;
+}
+
+pindf_token *pindf_lex_from_buffer(pindf_lexer *lexer, uchar *buffer, size_t buf_offset, size_t buf_len, int *chars_read)
+{
+	uchar *p = buffer + buf_offset;
+
+	uchar ch;
+	int emit = 0;
+	pindf_uchar_str *emit_str = NULL;
+
+	while (!emit) {
+		lexer->prev_state = lexer->state;
+		if (lexer->state == PINDF_LEXER_STATE_OUT_EOL) {
+			emit = PINDF_LEXER_EMIT_EOL;
+			lexer->state = PINDF_LEXER_STATE_DEFAULT;
+			break;
+		}
+
+		if (p == buffer + buf_len) {
+			emit = PINDF_LEXER_EMIT_EOF;
+			break;
+		}
+		int status = *(p++);
+		++lexer->offset;
+		ch = (uchar)status;
+		
+		int ret = _update_state(lexer, ch, &emit, &emit_str);
+		if (ret < 0) {
+			emit = PINDF_LEXER_EMIT_ERR;
+			break;
+		}
+	}
+
+	pindf_token *token = pindf_token_new(emit, emit_str, lexer->token_offset);
+	if (emit == PINDF_LEXER_EMIT_REGULAR)
+		pindf_token_regular_lex(token);
+	*chars_read = p - buffer;
+	return token;
+}
+
+pindf_token *pindf_lex_from_buffer_options(
+	pindf_lexer *lexer,
+	uchar *buffer,
+	size_t buf_offset,
+	size_t buf_len,
+	int *chars_read,
+	uint options)
+{
+	pindf_token *token;
+
+	uint ignore = 0;
+	do {
+		ignore = 0;
+		token = pindf_lex_from_buffer(lexer, buffer, buf_offset, buf_len, chars_read);
 
 		ignore |= token->event == PINDF_LEXER_EMIT_WHITE_SPACE && (options & PINDF_LEXER_OPT_IGNORE_WS);
 		ignore |= token->event == PINDF_LEXER_EMIT_COMMENT && (options & PINDF_LEXER_OPT_IGNORE_CMT);

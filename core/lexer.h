@@ -101,6 +101,10 @@ pindf_lexer *pindf_lexer_new();
 void pindf_lexer_init(pindf_lexer *lexer);
 pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file);
 pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options);
+
+pindf_token *pindf_lex_from_buffer(pindf_lexer *lexer, uchar *buffer, size_t buf_offset, size_t buf_len, int *chars_read);
+pindf_token *pindf_lex_from_buffer_options(pindf_lexer *lexer, uchar *buffer, size_t buf_offset, size_t buf_len, int *chars_read, uint options);
+
 pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
 
 pindf_token *pindf_token_new(int event, pindf_uchar_str *raw_str, uint64 offset);
