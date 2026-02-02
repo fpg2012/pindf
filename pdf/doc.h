@@ -3,6 +3,7 @@
 #include "../type.h"
 #include "obj.h"
 #include "../container/simple_vector.h"
+#include "../logger/logger.h"
 
 // #define PINDF_MAX_XREF_SECTIONS 512
 
@@ -10,6 +11,12 @@ enum pindf_xref_entry_type {
 	PINDF_XREF_ENTRY_F = 0, // free
 	PINDF_XREF_ENTRY_N, // normal
 	PINDF_XREF_ENTRY_C, // compressed
+};
+
+enum pindf_obj_avail {
+	PINDF_OBJ_NOTLOAD = 0,
+	PINDF_OBJ_AVAILABLE,
+	PINDF_OBJ_FREE,
 };
 
 typedef struct {
@@ -28,11 +35,12 @@ struct pindf_xref_table {
 	pindf_xref_table *next_table;
 };
 
-struct pindf_obj_entry {
+typedef struct {
+	int available;
 	uint64 offset;
 	uint number;
 	pindf_pdf_obj *ind_obj;
-};
+} pindf_obj_entry;
 
 typedef struct pindf_xref pindf_xref;
 
@@ -46,7 +54,7 @@ typedef struct pindf_xref {
 
 typedef struct {
 	const char *pdf_version;
-	pindf_vector *ind_obj_list; // array of ind_obj_entry
+	pindf_obj_entry *ind_obj_list; // array of ind_obj_entry
 	int xref_offset;
 
 	pindf_pdf_dict trailer;
@@ -66,6 +74,4 @@ void pindf_xref_init(pindf_xref *xref, size_t size);
 pindf_xref_entry *pindf_xref_getentry(pindf_xref *table, pindf_pdf_obj *ref);
 pindf_xref_table *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, size_t len);
 
-void pindf_doc_obj_setentry(pindf_doc *doc, pindf_pdf_obj *obj, uint64 offset);
-pindf_pdf_obj *pindf_doc_obj_getentry(pindf_doc *doc, uint64 obj_num, uint64 *offset);
-pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, uint64 obj_num);
+// pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, uint64 obj_num);

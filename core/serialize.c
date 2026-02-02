@@ -228,28 +228,28 @@ char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 	return p;
 }
 
-char *pindf_doc_serialize_json(pindf_doc *doc, char *buf, size_t buf_size)
-{
-	char *p = buf;
-	p += snprintf(p, BUF_REMAIN, "{\"version\": \"%s\",\n\"startxref\": %d,\n", doc->pdf_version, doc->xref_offset);
-	p += snprintf(p, BUF_REMAIN, "\"trailer\":");
-	pindf_pdf_obj temp_obj = (pindf_pdf_obj){
-		.obj_type = PINDF_PDF_DICT,
-		.content.dict = doc->trailer,
-	};
-	p = pindf_pdf_obj_serialize_json(&temp_obj, p, BUF_REMAIN);
-	p += snprintf(p, BUF_REMAIN, ",\n\"obj_list\":[\n");
+// char *pindf_doc_serialize_json(pindf_doc *doc, char *buf, size_t buf_size)
+// {
+// 	char *p = buf;
+// 	p += snprintf(p, BUF_REMAIN, "{\"version\": \"%s\",\n\"startxref\": %d,\n", doc->pdf_version, doc->xref_offset);
+// 	p += snprintf(p, BUF_REMAIN, "\"trailer\":");
+// 	pindf_pdf_obj temp_obj = (pindf_pdf_obj){
+// 		.obj_type = PINDF_PDF_DICT,
+// 		.content.dict = doc->trailer,
+// 	};
+// 	p = pindf_pdf_obj_serialize_json(&temp_obj, p, BUF_REMAIN);
+// 	p += snprintf(p, BUF_REMAIN, ",\n\"obj_list\":[\n");
 
-	struct pindf_obj_entry entry;
-	for (int i = 0; i < doc->ind_obj_list->len; ++i) {
-		pindf_vector_index(doc->ind_obj_list, i, &entry);
-		p = pindf_pdf_obj_serialize_json(entry.ind_obj, p, BUF_REMAIN);
+// 	struct pindf_obj_entry entry;
+// 	for (int i = 0; i < doc->ind_obj_list->len; ++i) {
+// 		pindf_vector_index(doc->ind_obj_list, i, &entry);
+// 		p = pindf_pdf_obj_serialize_json(entry.ind_obj, p, BUF_REMAIN);
 		
-		if (i < doc->ind_obj_list->len - 1) {
-			p += snprintf(p, BUF_REMAIN, ",\n");
-		}
-	}
+// 		if (i < doc->ind_obj_list->len - 1) {
+// 			p += snprintf(p, BUF_REMAIN, ",\n");
+// 		}
+// 	}
 
-	p += snprintf(p, BUF_REMAIN, "\n]}");
-	return p;
-}
+// 	p += snprintf(p, BUF_REMAIN, "\n]}");
+// 	return p;
+// }

@@ -62,7 +62,26 @@ int main(int argc, const char **argv)
 		section = section->next_table;
 		++section_index;
 	}
+	fclose(out);
 
+	// === dump ind objs ===
+	out = fopen("json_dump.txt", "wb");
+	pindf_uchar_str buf;
+	pindf_uchar_str_init(&buf, 10000);
+	fprintf(out, "[\n");
+	for (int i = 0; i < doc->xref->size; ++i) {
+		if (i > 0) {
+			fprintf(out, ",\n");
+		}
+		pindf_pdf_obj *obj = pindf_doc_getobj(doc, parser, lexer, i);
+		if (obj != NULL) {
+			pindf_pdf_obj_serialize_json(obj, (char*)buf.p, buf.capacity);
+			fprintf(out, "%s", buf.p);
+		} else {
+			fprintf(out, "null");
+		}
+	}
+	fprintf(out, "]\n");
 	fclose(out);
 	
 	return 0;

@@ -665,3 +665,61 @@ int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf
 
 	return ret;
 }
+
+pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexer *lexer, uint64 obj_num)
+{
+	assert(doc != NULL);
+	assert(doc->xref != NULL);
+
+	if (obj_num >= doc->xref->size) {
+		// invalid obj num
+		PINDF_WARN("obj_num %d out of xref table size %zu", obj_num, doc->xref->size);
+		return NULL;
+	}
+
+	// init obj entry
+	if (doc->ind_obj_list == NULL) {
+		doc->ind_obj_list = (pindf_obj_entry*)calloc(doc->xref->size, sizeof(pindf_obj_entry));
+	}
+
+	if (doc->ind_obj_list[obj_num].number == 0) {
+		// not loaded yet
+		pindf_parser_init(parser);
+		pindf_lexer_init(lexer);
+		// look up xref table
+		pindf_xref_entry *entry = &doc->xref->entries[obj_num];
+		if (entry->type == PINDF_XREF_ENTRY_N) {
+			uint64 offset = entry->fields[0];
+			fseek(doc->fp, offset, SEEK_SET);
+			pindf_pdf_obj *obj = NULL;
+			uint64 obj_offset = 0;
+			int ret = pindf_parse_one_obj(parser, lexer, doc->fp, &obj, &obj_offset, PINDF_PDF_IND_OBJ);
+			if (ret < 0) {
+				PINDF_ERR("failed to parse indirect obj %d at offset %llu", obj_num, offset);
+				return NULL;
+			}
+			if (offset != obj_offset) {
+				PINDF_WARN("indirect obj %d offset mismatch: xref %llu vs parsed %llu", obj_num, offset, obj_offset);
+			}
+			doc->ind_obj_list[obj_num] = (pindf_obj_entry){
+				.available = PINDF_OBJ_AVAILABLE,
+				.offset = obj_offset,
+				.number = obj_num,
+				.ind_obj = obj,
+			};
+		} else if (entry->type == PINDF_XREF_ENTRY_C) {
+			PINDF_ERR("not implemented");
+			return NULL;
+		} else {
+			// Free
+			doc->ind_obj_list[obj_num] = (pindf_obj_entry){
+				.available = PINDF_OBJ_FREE,
+				.offset = 0,
+				.number = 0,
+				.ind_obj = NULL,
+			};
+		}
+	}
+
+	return doc->ind_obj_list[obj_num].ind_obj;
+}
