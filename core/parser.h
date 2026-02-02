@@ -44,3 +44,5 @@ void pindf_parser_destroy(pindf_parser *parser);
 
 pindf_symbol *pindf_symbol_new_term(pindf_token *token);
 pindf_symbol *pindf_symbol_new_nonterm(pindf_pdf_obj *pdf_obj, uint64 offset);
+
+void pindf_parser_clear(pindf_parser *parser);

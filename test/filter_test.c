@@ -40,8 +40,8 @@ int main(int argc, const char **argv)
 	}
 	// printf("startxref: %d\n", doc->xref_offset);
 	
-	pindf_parser_init(parser);
-	pindf_lexer_init(lexer);
+	pindf_parser_clear(parser);
+	pindf_lexer_clear(lexer);
 	// === body parse test ===
 	// printf("\n=== body parse test ===\n");
 	// fseek(f, 0, SEEK_SET);

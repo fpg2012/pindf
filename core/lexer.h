@@ -41,7 +41,6 @@ enum pindf_lexer_event {
 	PINDF_LEXER_EMIT_EOF = -1,
 };
 
-
 enum pindf_lexer_regtype {
 	PINDF_LEXER_REGTYPE_UNK = 0,
 	PINDF_LEXER_REGTYPE_NORM,
@@ -99,6 +98,7 @@ typedef struct {
 
 pindf_lexer *pindf_lexer_new();
 void pindf_lexer_init(pindf_lexer *lexer);
+void pindf_lexer_clear(pindf_lexer *lexer);
 pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file);
 pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options);
 
@@ -109,3 +109,4 @@ pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
 
 pindf_token *pindf_token_new(int event, pindf_uchar_str *raw_str, uint64 offset);
 void pindf_token_regular_lex(pindf_token *token);
+void pindf_token_destroy(pindf_token *token);

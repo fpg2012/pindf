@@ -87,6 +87,11 @@ void pindf_lexer_init(pindf_lexer *lexer)
 	lexer->string_level = 0;
 }
 
+void pindf_lexer_clear(pindf_lexer *lexer)
+{
+	pindf_lexer_init(lexer);
+}
+
 pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len)
 {
 	pindf_uchar_str *str = pindf_uchar_str_new();
@@ -496,4 +501,11 @@ pindf_token *pindf_lex_from_buffer_options(
 		ignore |= token->event == PINDF_LEXER_NO_EMIT && (options & PINDF_LEXER_NO_EMIT);
 	} while (ignore);
 	return token;
+}
+
+void pindf_token_destroy(pindf_token *token)
+{
+	if (token->raw_str)
+		pindf_uchar_str_destroy(token->raw_str);
+	free(token->raw_str);
 }

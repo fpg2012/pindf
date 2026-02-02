@@ -31,3 +31,4 @@ enum pindf_log_level {
 };
 
 void pindf_log(enum pindf_log_level level, const char *fmt, ...);
+void pindf_set_log_level(enum pindf_log_level level);

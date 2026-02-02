@@ -1,10 +1,12 @@
 #include "parser.h"
 #include "../logger/logger.h"
+#include "lexer.h"
 
 #define ASSERT_EMPTY_STACK() \
 	do { if (parser->symbol_stack->len == 0) { perror("empty stack!"); return -1; } } while(0)
 #define REDUCE_SINGLE_OBJ(type_low, type_upper, parsed_content) \
 	do { \
+		PINDF_DEBUG("reduce single obj"); \
 		ASSERT_EMPTY_STACK(); \
 		pindf_symbol *symbol = NULL; \
 		pindf_vector_last_elem(parser->symbol_stack, &symbol); \
@@ -24,6 +26,8 @@
 			PINDF_ERR("(reduce %s) no delim %c found", reduce_type, delim); \
 			return -1; \
 		} \
+		pindf_token_destroy(symbol->content.term); \
+		free(symbol->content.term); \
 	++p; } while(0)
 #define MATCH_OBJ_OR_ERR(reduce_type) \
 	do { \
@@ -44,10 +48,18 @@
 #define POP_EVERYTHING() \
 	do { \
 		while (p > beg) { \
-			pindf_vector_pop(parser->symbol_stack, NULL); \
+			_symbol_pop(parser); \
 			--p; \
 		} \
 	} while (0)
+
+
+void _symbol_pop(pindf_parser *parser)
+{
+	pindf_symbol *symbol = NULL;
+	pindf_vector_pop(parser->symbol_stack, &symbol);
+	free(symbol);
+}
 
 void _update_reduce_pos(pindf_parser *parser)
 {
@@ -63,6 +75,7 @@ void _restore_reduce_pos(pindf_parser *parser)
 // reduce functions group terms to a non_term
 int _reduce_array(pindf_parser *parser)
 {
+	PINDF_DEBUG("reduce array");
 	size_t beg = parser->reduce_pos, p = beg;
 	size_t cap = parser->symbol_stack->len - beg;
 	pindf_vector *vec = pindf_vector_new(cap, sizeof(pindf_pdf_obj*));
@@ -92,6 +105,7 @@ int _reduce_array(pindf_parser *parser)
 
 int _reduce_dict(pindf_parser *parser)
 {
+	PINDF_DEBUG("reduce dict");
 	size_t beg = parser->reduce_pos, p = beg;
 	pindf_symbol *symbol;
 
@@ -105,7 +119,7 @@ int _reduce_dict(pindf_parser *parser)
 	while (p < parser->symbol_stack->len - 1) {
 		MATCH_OBJ_OR_ERR("dict");
 		if (symbol->content.non_term->obj_type != PINDF_PDF_NAME) {
-			perror("[reduce dict] non-name key is invalid");
+			PINDF_ERR("[reduce dict] non-name key is invalid");
 			return -1;
 		}
 		pindf_vector_append(keys, &symbol->content.non_term);
@@ -131,6 +145,7 @@ int _reduce_dict(pindf_parser *parser)
 
 int _reduce_ref(pindf_parser *parser)
 {
+	PINDF_DEBUG("reduce ref");
 	size_t beg = parser->symbol_stack->len - 3, p = beg;
 	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_REF);
 	pindf_symbol *symbol;
@@ -138,15 +153,15 @@ int _reduce_ref(pindf_parser *parser)
 	for (int i = 0; i < 2; ++i, ++p) {
 		pindf_vector_index(parser->symbol_stack, p, &symbol);
 		ab[i] = symbol->content.non_term->content.num;
+		free(symbol->content.non_term);
 	}
-	pindf_vector_pop(parser->symbol_stack, NULL); // pop R
-	pindf_vector_pop(parser->symbol_stack, NULL); // pop gen num
+	_symbol_pop(parser); // pop R
+	_symbol_pop(parser); // pop gen num
 
 	pindf_vector_last_elem(parser->symbol_stack, &symbol);
 	obj->content.ref.obj_num = ab[0];
 	obj->content.ref.generation_num = ab[1];
-	
-	// potential memory leak
+
 	symbol->type = PINDF_SYMBOL_NONTERM;
 	symbol->content.non_term = obj;
 	return 0;
@@ -154,6 +169,7 @@ int _reduce_ref(pindf_parser *parser)
 
 int _reduce_ind_obj(pindf_parser *parser)
 {
+	PINDF_DEBUG("reduce ind obj");
 	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_IND_OBJ);
 	pindf_symbol *symbol;
 	int ab[2];
@@ -248,23 +264,24 @@ pindf_parser *pindf_parser_new()
 {
 	pindf_parser *parser = (pindf_parser*)malloc(sizeof(pindf_parser));
 	
-	parser->symbol_stack = pindf_vector_new(32768, sizeof(pindf_symbol*));
-	parser->reduce_pos_stack = pindf_vector_new(1024, sizeof(int));
-
-	// parser->file_part_state = 0;
-
-	parser->reduce_pos = 0;
+	pindf_parser_init(parser);
 
 	return parser;
 }
 
 void pindf_parser_init(pindf_parser *parser)
 {
+	parser->symbol_stack = pindf_vector_new(32768, sizeof(pindf_symbol*));
+	parser->reduce_pos_stack = pindf_vector_new(1024, sizeof(int));
 	parser->reduce_pos = 0;
 	parser->symbol_stack->len = 0;
 	parser->reduce_pos_stack->len = 0;
 }
 
+// NOTE on ownership of token
+// For any ltrstr, hexstr or name, parser got the ownership of inner raw_str.
+// For any delim, parser got ownership of the whole token.
+// otherwise, parser do not get the ownership of anything.
 int pindf_parser_add_token(pindf_parser *parser, pindf_token *token)
 {
 	assert(token != NULL);
@@ -350,7 +367,16 @@ int pindf_parser_add_token(pindf_parser *parser, pindf_token *token)
 
 void pindf_parser_destroy(pindf_parser *parser)
 {
-	pindf_parser *parser_ = (pindf_parser *)parser;
-	pindf_vector_destroy(parser_->symbol_stack);
-	pindf_vector_destroy(parser_->reduce_pos_stack);
+	pindf_vector_destroy(parser->symbol_stack);
+	pindf_vector_destroy(parser->reduce_pos_stack);
+}
+
+void pindf_parser_clear(pindf_parser *parser)
+{
+	while (parser->symbol_stack->len > 0) {
+		_symbol_pop(parser);
+	}
+
+	parser->reduce_pos_stack->len = 0;
+	parser->reduce_pos = 0;
 }

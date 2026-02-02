@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "../pindf.h"
+#include "../logger/logger.h"
 
 
 int main(int argc, const char **argv)
@@ -12,6 +13,7 @@ int main(int argc, const char **argv)
 		fprintf(stderr, "Usage:\n\t %s [filename]", argv[0]);
 		exit(0);
 	}
+	pindf_set_log_level(PINDF_LOG_LEVEL_DEBUG);
 	pindf_lexer *lexer = pindf_lexer_new();
 	pindf_parser *parser = pindf_parser_new();
 
@@ -40,8 +42,8 @@ int main(int argc, const char **argv)
 	}
 	printf("startxref: %d\n", doc->xref_offset);
 	
-	pindf_parser_init(parser);
-	pindf_lexer_init(lexer);
+	pindf_parser_clear(parser);
+	pindf_lexer_clear(lexer);
 
 	// === dump xref_table ===
 	printf("\n=== dump xref table ===");
