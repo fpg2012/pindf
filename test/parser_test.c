@@ -13,7 +13,7 @@ int main(int argc, const char **argv)
 		fprintf(stderr, "Usage:\n\t %s [filename]", argv[0]);
 		exit(0);
 	}
-	pindf_set_log_level(PINDF_LOG_LEVEL_DEBUG);
+	pindf_set_log_level(PINDF_LOG_LEVEL_INFO);
 	pindf_lexer *lexer = pindf_lexer_new();
 	pindf_parser *parser = pindf_parser_new();
 
@@ -67,7 +67,7 @@ int main(int argc, const char **argv)
 	fclose(out);
 
 	// === dump ind objs ===
-	out = fopen("json_dump.txt", "wb");
+	out = fopen("json_dump.json", "wb");
 	pindf_uchar_str buf;
 	pindf_uchar_str_init(&buf, 10000);
 	fprintf(out, "[\n");

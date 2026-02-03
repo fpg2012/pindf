@@ -42,7 +42,7 @@ void _append_ch(pindf_lexer *lexer, char ch)
 	if (lexer->buf_end == PINDF_LEXER_BUFSIZE) {
 		PINDF_ERR("lexer buffer overflow!");
 		PINDF_ERR("current state: %d", lexer->state);
-		exit(0);
+		exit(-1);
 	}
 	if (lexer->buf_end == 0) {
 		lexer->token_offset = lexer->offset;
@@ -444,7 +444,7 @@ pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options)
 
 pindf_token *pindf_lex_from_buffer(pindf_lexer *lexer, uchar *buffer, size_t buf_offset, size_t buf_len, int *chars_read)
 {
-	uchar *p = buffer + buf_offset;
+	uchar *beg = buffer + buf_offset, *p = beg;
 
 	uchar ch;
 	int emit = 0;
@@ -476,7 +476,7 @@ pindf_token *pindf_lex_from_buffer(pindf_lexer *lexer, uchar *buffer, size_t buf
 	pindf_token *token = pindf_token_new(emit, emit_str, lexer->token_offset);
 	if (emit == PINDF_LEXER_EMIT_REGULAR)
 		pindf_token_regular_lex(token);
-	*chars_read = p - buffer;
+	*chars_read = p - beg;
 	return token;
 }
 
@@ -489,17 +489,26 @@ pindf_token *pindf_lex_from_buffer_options(
 	uint options)
 {
 	pindf_token *token;
+	int chars_read_inner = 0;
+	size_t cursor = 0;
 
 	uint ignore = 0;
 	do {
 		ignore = 0;
-		token = pindf_lex_from_buffer(lexer, buffer, buf_offset, buf_len, chars_read);
+		token = pindf_lex_from_buffer(lexer, buffer, buf_offset + cursor, buf_len, &chars_read_inner);
+		cursor += chars_read_inner;
 
 		ignore |= token->event == PINDF_LEXER_EMIT_WHITE_SPACE && (options & PINDF_LEXER_OPT_IGNORE_WS);
 		ignore |= token->event == PINDF_LEXER_EMIT_COMMENT && (options & PINDF_LEXER_OPT_IGNORE_CMT);
 		ignore |= token->event == PINDF_LEXER_EMIT_EOL && (options & PINDF_LEXER_OPT_IGNORE_EOL);
 		ignore |= token->event == PINDF_LEXER_NO_EMIT && (options & PINDF_LEXER_NO_EMIT);
-	} while (ignore);
+		if (ignore) {
+			pindf_token_destroy(token);
+			free(token);
+		}
+	} while (ignore && cursor < buf_len);
+
+	*chars_read = (int)cursor;
 	return token;
 }
 

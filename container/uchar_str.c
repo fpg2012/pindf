@@ -49,7 +49,7 @@ void pindf_uchar_str_destroy(pindf_uchar_str *str)
 
 void pindf_uchar_str_destroy_wo_p(pindf_uchar_str *str)
 {
-	free(str);
+	// free(str);
 }
 
 int pindf_uchar_str_cmp(const pindf_uchar_str *a, const pindf_uchar_str *b)

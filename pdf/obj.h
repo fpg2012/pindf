@@ -7,7 +7,7 @@
 #include "../container/simple_vector.h"
 
 enum pindf_pdf_obj_type {
-	PINDF_PDF_OBJ,
+	PINDF_PDF_UNK = 0,
 	PINDF_PDF_INT,
 	PINDF_PDF_REAL,
 	PINDF_PDF_DICT,
