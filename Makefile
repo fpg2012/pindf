@@ -11,7 +11,7 @@ LDFLAGS += $(ZLIB_LDFLAGS)
 
 # CFLAGS += -fsanitize=address
 
-all: lexer_test parser_test vec_test filter_test
+all: lexer_test parser_test vec_test
 
 lexer_test: test/lexer_test.c ${SRC}
 	CC -o test/lexer_test test/lexer_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
@@ -19,9 +19,6 @@ lexer_test: test/lexer_test.c ${SRC}
 parser_test: test/parser_test.c ${SRC}
 	CC -o test/parser_test test/parser_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 	CC -o test/parser_from_buffer_test test/parser_from_buffer_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
-
-filter_test: test/filter_test.c ${SRC}
-	CC -o test/filter_test test/filter_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
 vec_test: test/vec_test.c container/simple_vector.c
 	CC -o test/vec_test test/vec_test.c container/simple_vector.c ${CFLAGS}

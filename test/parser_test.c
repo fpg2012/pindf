@@ -36,7 +36,7 @@ int main(int argc, const char **argv)
 	// === quick file parse test ===
 	printf("\n=== quick file parse test ===\n");
 	fseek(f, 0, SEEK_SET);
-	ret = pindf_file_parse(parser, f, file_len, &doc);
+	ret = pindf_file_parse(parser, lexer, f, file_len, &doc);
 	if (ret < 0) {
 		return -1;
 	}
@@ -70,7 +70,7 @@ int main(int argc, const char **argv)
 	out = fopen("json_dump.json", "wb");
 	pindf_uchar_str buf;
 	pindf_uchar_str_init(&buf, 10000);
-	fprintf(out, "[\n");
+	fprintf(out, "{\"objs\":[");
 	for (int i = 0; i < doc->xref->size; ++i) {
 		if (i > 0) {
 			fprintf(out, ",\n");
@@ -83,7 +83,17 @@ int main(int argc, const char **argv)
 			fprintf(out, "null");
 		}
 	}
-	fprintf(out, "]\n");
+	fprintf(out, "],\n");
+	fprintf(out, "\"trailer\": ");
+	pindf_pdf_obj trailer_obj = (pindf_pdf_obj){
+		.obj_type = PINDF_PDF_DICT,
+		.content = {
+			.dict = doc->trailer,
+		}
+	};
+	pindf_pdf_obj_serialize_json(&trailer_obj, (char*)buf.p, 10000);
+	fprintf(out, "%s", buf.p);
+	fprintf(out, "\n}\n");
 	fclose(out);
 	
 	return 0;

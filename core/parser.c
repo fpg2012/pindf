@@ -374,7 +374,13 @@ void pindf_parser_destroy(pindf_parser *parser)
 void pindf_parser_clear(pindf_parser *parser)
 {
 	while (parser->symbol_stack->len > 0) {
-		_symbol_pop(parser);
+		pindf_symbol *temp_symbol = NULL;
+		pindf_vector_pop(parser->symbol_stack, &temp_symbol);
+		if (temp_symbol->type == PINDF_SYMBOL_TERM) {
+			pindf_token_destroy(temp_symbol->content.term);
+			free(temp_symbol->content.non_term);
+		}
+		free(temp_symbol);
 	}
 
 	parser->reduce_pos_stack->len = 0;

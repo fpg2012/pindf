@@ -131,6 +131,7 @@ int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_ucha
 		// PNG prediction
 		int ret = pindf_zlib_uncompress(&temp_dest, src);
 		if (ret < 0) {
+			pindf_uchar_str_destroy(&temp_dest);
 			return ret;
 		}
 
