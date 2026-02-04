@@ -384,6 +384,8 @@ void pindf_token_regular_lex(pindf_token *token) {
 				real_state = 2;
 			} else if (*p >= '1' && *p <= '9') {
 				real_state = 1;
+			} else if (*p == '.') {
+				real_state = 3;
 			} else {
 				reg_type = PINDF_LEXER_REGTYPE_NORM;
 				break;
