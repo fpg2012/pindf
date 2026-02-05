@@ -25,14 +25,16 @@ enum pindf_pdf_obj_type {
 typedef struct pindf_pdf_obj pindf_pdf_obj;
 
 typedef struct {
-	pindf_vector *keys; // vector of name obj
-	pindf_vector *values; // vector of obj
+	/// vector of name obj
+	pindf_vector *keys;
+	/// vector of any obj (except for stream or ind)
+	pindf_vector *values;
 } pindf_pdf_dict;
 
 typedef struct {
 	uint64 content_offset;
 	pindf_pdf_obj *dict;
-	pindf_uchar_str *stream_content;
+	pindf_uchar_str *stream_content; /// original content, maybe compressed
 } pindf_pdf_stream;
 
 typedef struct {
@@ -47,6 +49,7 @@ typedef struct {
 	int generation_num;
 } pindf_pdf_ref;
 
+/// @brief unified struct for all pdf objects
 struct pindf_pdf_obj {
 	enum pindf_pdf_obj_type obj_type;
 	union {
@@ -68,6 +71,11 @@ struct pindf_pdf_obj {
 	} content;
 };
 
+/// @brief new an object
+/// @return created object. NULL if failed
 pindf_pdf_obj *pindf_pdf_obj_new(enum pindf_pdf_obj_type type);
+
+/// @brief get value by the key (key is a byte string)
 pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, const uchar *key, size_t key_len);
+/// @brief get value by the key (key is a c string)
 pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key);

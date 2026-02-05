@@ -9,3 +9,8 @@
 output
 *.json
 .pdf/
+
+docs/xml
+docs/doxygen
+docs/_build
+*.txt

@@ -16,6 +16,7 @@ enum pindf_filter_errno {
 	PINDF_FLTR_DAT_ERR = -2,
 };
 
+/// only NONE and FLATEDECODE are implemented
 enum pindf_filter_type {
 	PINDF_FLTR_TYPE_NONE = 0,
 	PINDF_FLTR_TYPE_FLATEDECODE,
@@ -30,12 +31,12 @@ enum pindf_filter_type {
 enum pindf_filter_flate_predictor {
 	PINDF_FLTR_FLATE_PREDICTOR_UNKNOWN = 0,
 	PINDF_FLTR_FLATE_PREDICTOR_NONE = 1,
-	PINDF_FLTR_FLATE_PREDICTOR_TIFF_2 = 2,
+	PINDF_FLTR_FLATE_PREDICTOR_TIFF_2 = 2, /// not implemented
 	PINDF_FLTR_FLATE_PREDICTOR_PNG_UP = 11,
 	PINDF_FLTR_FLATE_PREDICTOR_PNG_SUB = 12,
 	PINDF_FLTR_FLATE_PREDICTOR_PNG_AVERAGE = 13,
-	PINDF_FLTR_FLATE_PREDICTOR_PNG_PAETH = 14,
-	PINDF_FLTR_FLATE_PREDTCTOR_PNG_OPTIMUM = 15,
+	PINDF_FLTR_FLATE_PREDICTOR_PNG_PAETH = 14, /// not implemented
+	PINDF_FLTR_FLATE_PREDTCTOR_PNG_OPTIMUM = 15, /// not implemented
 };
 
 enum pindf_png_filter_type {
@@ -43,7 +44,7 @@ enum pindf_png_filter_type {
 	PINDF_PNG_FLTR_TYPE_SUB = 1,
 	PINDF_PNG_FLTR_TYPE_UP = 2,
 	PINDF_PNG_FLTR_TYPE_AVERAGE = 3,
-	PINDF_PNG_FLTR_TYPE_PAETH = 4,
+	PINDF_PNG_FLTR_TYPE_PAETH = 4, /// not implemented
 };
 
 typedef struct {
@@ -60,7 +61,9 @@ typedef struct pindf_stream_filter {
 
 	pindf_filter_decode_params decode_params;
 
+	/// decode function, should be set when init
 	enum pindf_filter_errno (*decode)(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src);
+	/// encode function, should be set when init 
 	enum pindf_filter_errno (*encode)(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src);
 } pindf_stream_filter;
 
@@ -72,7 +75,10 @@ int pindf_zlib_uncompress(pindf_uchar_str *dest, pindf_uchar_str *src);
 int pindf_zlib_compress(pindf_uchar_str *dest, pindf_uchar_str *src);
 
 int pindf_flate_decode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src);
+
+/// only simple zlib compress, DecodeParms are not supported now
 int pindf_flate_encode(pindf_stream_filter *f, pindf_uchar_str *dest, pindf_uchar_str *src);
 
+/// @brief convert string name to enum type
 enum pindf_filter_type pindf_filter_type_from_name(const pindf_uchar_str *name);
 enum pindf_filter_type pindf_filter_type_from_name2(const char *name);

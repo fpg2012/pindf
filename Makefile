@@ -13,6 +13,11 @@ LDFLAGS += $(ZLIB_LDFLAGS)
 
 all: lexer_test parser_test vec_test
 
+doc: Doxyfile
+	mkdir -p docs/doxygen
+	doxygen Doxyfile
+	cd docs && sphinx-build -b html . _build/html
+
 lexer_test: test/lexer_test.c ${SRC}
 	CC -o test/lexer_test test/lexer_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
@@ -26,7 +31,11 @@ vec_test: test/vec_test.c container/simple_vector.c
 compress_test: test/compress_test.c ${SRC}
 	CC -o test/compress_test test/compress_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
-clean:
+clean_doc:
+	rm -rf docs/_build
+	rm -rf docs/doxygen
+
+clean: clean_doc
 	rm -f test/*_test
 	rm -f test/*.pch
 	rm -rf test/*.dSYM

@@ -10,6 +10,7 @@
 
 #define PINDF_LEXER_BUFSIZE 1048576
 
+/// @brief state of lexer
 enum pindf_lexer_state {
 	PINDF_LEXER_STATE_DEFAULT = 0,
 	PINDF_LEXER_STATE_REGULAR,
@@ -27,6 +28,7 @@ enum pindf_lexer_state {
 	PINDF_LEXER_STATE_ERR = -1,
 };
 
+/// @brief event emitted by the lexer
 enum pindf_lexer_event {
 	PINDF_LEXER_NO_EMIT = 0,
 	PINDF_LEXER_EMIT_REGULAR,
@@ -41,14 +43,16 @@ enum pindf_lexer_event {
 	PINDF_LEXER_EMIT_EOF = -1,
 };
 
+/// @brief type of "regular" token
 enum pindf_lexer_regtype {
 	PINDF_LEXER_REGTYPE_UNK = 0,
-	PINDF_LEXER_REGTYPE_NORM,
+	PINDF_LEXER_REGTYPE_NORM, /// NORM type should not exist in real pdf file
 	PINDF_LEXER_REGTYPE_KWD,
 	PINDF_LEXER_REGTYPE_INT = 1000,
 	PINDF_LEXER_REGTYPE_REAL = 1001,
 };
 
+/// @brief keywoard enum
 enum pindf_kwd {
 	PINDF_KWD_UNK = 0,
 	PINDF_KWD_endobj,
@@ -67,6 +71,7 @@ enum pindf_kwd {
 	PINDF_KWD_END,
 };
 
+/// @brief option for event ignoration
 enum pindf_lexer_opt {
 	PINDF_LEXER_OPT_IGNORE_WS = 1,
 	PINDF_LEXER_OPT_IGNORE_EOL = 2,
@@ -76,37 +81,60 @@ enum pindf_lexer_opt {
 
 extern const char *pindf_lexer_keyword_list[];
 
+/// @brief lexer of pdf
 typedef struct {
 	enum pindf_lexer_state state;
 	enum pindf_lexer_state prev_state;
 	uchar buf[PINDF_LEXER_BUFSIZE];
 	size_t buf_end;
+	/// for parenthesis matching
 	int string_level;
 
+	/// offset in pdf file of current token
 	uint64 token_offset;
+	/// offset of current file cursor, use less for buffer lexing
 	uint64 offset;
 } pindf_lexer;
 
+/// @brief token
 typedef struct {
 	enum pindf_lexer_event event;
+	/// raw byte string copied from file, can be NULL for some token types
 	pindf_uchar_str *raw_str;
-	enum pindf_lexer_regtype reg_type; 	// only meaningful if event=regular
-	enum pindf_kwd kwd; 	// only meaningful if reg_type=kwd
+	/// only meaningful if event=regular, should be 0 otherwise
+	enum pindf_lexer_regtype reg_type;
+	/// only meaningful if reg_type=kwd, should be 0 otherwise
+	enum pindf_kwd kwd;
 	uint64 offset;
 } pindf_token;
 
-
+/// @brief create a new lexer
 pindf_lexer *pindf_lexer_new();
+
+/// @brief init a new lexer
 void pindf_lexer_init(pindf_lexer *lexer);
+
+/// @brief reset lexer to initial state, and clean up everything inside
 void pindf_lexer_clear(pindf_lexer *lexer);
+
+/// @brief lex a file, return lexical events if any
 pindf_token *pindf_lex(pindf_lexer *lexer, FILE *file);
+/// @brief lex a file with ignorance to certain events
 pindf_token *pindf_lex_options(pindf_lexer *lexer, FILE *file, uint options);
 
+/// @brief lex a buffer
+/// offset is useless for buffer lexing
 pindf_token *pindf_lex_from_buffer(pindf_lexer *lexer, uchar *buffer, size_t buf_offset, size_t buf_len, int *chars_read);
+/// @brief lex a buffer with ignorance to certain events
 pindf_token *pindf_lex_from_buffer_options(pindf_lexer *lexer, uchar *buffer, size_t buf_offset, size_t buf_len, int *chars_read, uint options);
 
+/// @brief read raw stream content from pdf file
+/// should not be called directly by applications
 pindf_uchar_str *pindf_lex_get_stream(FILE *file, size_t len);
 
 pindf_token *pindf_token_new(int event, pindf_uchar_str *raw_str, uint64 offset);
-void pindf_token_regular_lex(pindf_token *token);
+
 void pindf_token_destroy(pindf_token *token);
+
+/// @brief finer distinguish among different regular tokens (real number vs integer vs keywords)
+void pindf_token_regular_lex(pindf_token *token);
