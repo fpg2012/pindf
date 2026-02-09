@@ -51,13 +51,13 @@ int main(int argc, const char **argv)
 
 	int n_sections = doc->xref->n_sections;
 
-	pindf_xref_table *section = doc->xref->first_section;
+	pindf_xref_section *section = doc->xref->first_section;
 	int section_index = 0;
 	while (section != NULL) {
 		pindf_xref_entry *entry = NULL;
 		fprintf(out, "\n--- xref section %d (st=%zu len=%zu) ---\n", section_index, section->obj_num, section->len);
 		for (uint j = 0; j < section->len; ++j) {
-			entry = pindf_xref_table_getentry(section, j);
+			entry = pindf_xref_section_getentry(section, j);
 			fprintf(out, "%d %06llu %llu\n", entry->type, entry->fields[0], entry->fields[1]);
 		}
 

@@ -183,7 +183,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 		token = pindf_lex_options(lexer, fp, options);
 		MATCH_EOL_TOKEN_OR_ERR(token);
 
-		pindf_xref_table *section = pindf_xref_alloc_section(doc->xref, obj_num, len);
+		pindf_xref_section *section = pindf_xref_alloc_section(doc->xref, obj_num, len);
 
 		for (int line = 0; line < len; ++line) {
 			token = pindf_lex_options(lexer, fp, options);
@@ -198,7 +198,7 @@ int _parse_xref_table(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_
 			MATCH_nf_TOKEN_OR_ERR(result, token);
 			int nf = result;
 
-			pindf_xref_table_setentry(section, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
+			pindf_xref_section_setentry(section, line, offset, gen, (nf == PINDF_KWD_n ? PINDF_XREF_ENTRY_N : PINDF_XREF_ENTRY_F));
 
 			token = pindf_lex_options(lexer, fp, options);
 			MATCH_EOL_TOKEN_OR_ERR(token);
@@ -405,7 +405,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 		doc->xref = (pindf_xref*)malloc(sizeof(pindf_xref));
 		pindf_xref_init(doc->xref, size);
 	}
-	pindf_xref_table *section = NULL;
+	pindf_xref_section *section = NULL;
 	int cur_section = 0, cur_section_first_entry = 0;
 	
 	for (int i = 0; i < n_entries; ++i) {
@@ -421,7 +421,7 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 			}
 		}
 		PINDF_DEBUG("%llx %llx %llx", temp_arr[0], temp_arr[1], temp_arr[2]);
-		pindf_xref_table_setentry(section, i - cur_section_first_entry, temp_arr[1], temp_arr[2], temp_arr[0]);
+		pindf_xref_section_setentry(section, i - cur_section_first_entry, temp_arr[1], temp_arr[2], temp_arr[0]);
 
 		if (i + 1 >= cur_section_first_entry + index_pairs[cur_section * 2 + 1]) {
 			PINDF_DEBUG("add section %d", cur_section);

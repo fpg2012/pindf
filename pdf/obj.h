@@ -79,3 +79,9 @@ pindf_pdf_obj *pindf_pdf_obj_new(enum pindf_pdf_obj_type type);
 pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, const uchar *key, size_t key_len);
 /// @brief get value by the key (key is a c string)
 pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key);
+
+void pindf_pdf_obj_destroy(pindf_pdf_obj *obj);
+
+void pindf_pdf_dict_destory(pindf_pdf_dict *dict);
+void pindf_pdf_stream_destroy(pindf_pdf_stream *stream);
+void pindf_pdf_ind_obj_destroy(pindf_pdf_ind_obj *ind_obj);

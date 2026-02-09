@@ -60,3 +60,90 @@ pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key)
 	pindf_vector_index(dict->values, index, &value);
 	return value;
 }
+
+void pindf_pdf_dict_destory(pindf_pdf_dict *dict)
+{
+	if (dict->keys != NULL) {
+		for (int i = 0; i < dict->keys->len; ++i) {
+			pindf_pdf_obj *temp = NULL;
+			pindf_vector_index(dict->keys, i, &temp);
+			pindf_pdf_obj_destroy(temp);
+			free(temp);
+		}
+		pindf_vector_destroy(dict->keys);
+		free(dict->keys);
+	}
+
+	if (dict->values != NULL) {
+		for (int i = 0; i < dict->values->len; ++i) {
+			pindf_pdf_obj *temp = NULL;
+			pindf_vector_index(dict->values, i, &temp);
+			pindf_pdf_obj_destroy(temp);
+			free(temp);
+		}
+		pindf_vector_destroy(dict->values);
+		free(dict->values);
+	}
+}
+
+void pindf_pdf_stream_destroy(pindf_pdf_stream *stream)
+{
+	if (stream->dict != NULL) {
+		pindf_pdf_obj_destroy(stream->dict);
+		free(stream->dict);
+	}
+
+	if (stream->stream_content != NULL) {
+		pindf_uchar_str_destroy(stream->stream_content);
+		free(stream->stream_content);
+	}
+}
+
+void pindf_pdf_ind_obj_destroy(pindf_pdf_ind_obj *ind_obj)
+{
+	if (ind_obj->obj != NULL) {
+		pindf_pdf_obj_destroy(ind_obj->obj);
+		free(ind_obj->obj);
+	}
+}
+
+void pindf_pdf_obj_destroy(pindf_pdf_obj *obj)
+{
+	switch (obj->obj_type) {
+	case PINDF_PDF_ARRAY:
+		if (obj->content.array != NULL) {
+			for (int i = 0; i < obj->content.array->len; ++i) {
+				pindf_pdf_obj *temp = NULL;
+				pindf_vector_index(obj->content.array, i, &temp);
+				pindf_pdf_obj_destroy(temp);
+				free(temp);
+			}
+			pindf_vector_destroy(obj->content.array);
+			free(obj->content.array);
+		}
+		break;
+	case PINDF_PDF_DICT:
+		pindf_pdf_dict_destory(&obj->content.dict);
+		break;
+	case PINDF_PDF_IND_OBJ:
+		pindf_pdf_ind_obj_destroy(&obj->content.indirect_obj);
+		break;
+	case PINDF_PDF_LTR_STR:
+		pindf_uchar_str_destroy(obj->content.ltr_str);
+		free(obj->content.ltr_str);
+		break;
+	case PINDF_PDF_HEX_STR:
+		pindf_uchar_str_destroy(obj->content.hex_str);
+		free(obj->content.hex_str);
+		break;
+	case PINDF_PDF_STREAM:
+		pindf_pdf_stream_destroy(&obj->content.stream);
+		break;
+	case PINDF_PDF_REF:
+	case PINDF_PDF_INT:
+	case PINDF_PDF_REAL:
+		break;
+	default:
+		PINDF_WARN("invalid pdf obj_type");
+	}
+}
