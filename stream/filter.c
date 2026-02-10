@@ -11,54 +11,77 @@ stream_getc(stream)
 
 int pindf_zlib_uncompress(pindf_uchar_str *dest, pindf_uchar_str *src)
 {
-	size_t cap = dest->capacity;
+	uLongf cap = (uLongf)dest->capacity;
 	int ret = 0;
 	int n_retry = 0;
 	do {
-		ret = uncompress(dest->p, &cap, src->p, src->len);
-		if (ret == Z_MEM_ERROR) {
+		ret = uncompress(dest->p, &cap, src->p, (uLong)src->len);
+		if (ret == Z_MEM_ERROR || ret == Z_BUF_ERROR) {
 			if (n_retry >= PINDF_MAX_EXPAND_RETRY) {
 				PINDF_ERR("used up 2^%d times of mem, still not enough!", PINDF_MAX_EXPAND_RETRY);
-				ret = Z_DATA_ERROR;
 				break;
 			}
 			pindf_uchar_str_2xexpand(dest);
+			cap = (uLongf)dest->capacity;
+			n_retry++;
 		}
-	} while(ret == Z_MEM_ERROR);
-	
-	if (ret == Z_DATA_ERROR)
-		return PINDF_FLTR_DAT_ERR;
-	if (ret == Z_MEM_ERROR)
-		return PINDF_FLTR_MEM_ERR;
+	} while(ret == Z_MEM_ERROR || ret == Z_BUF_ERROR);
 
-	dest->len = cap;
-	return cap; 
+	if (ret == Z_OK) {
+		dest->len = (size_t)cap;
+		return (int)cap;
+	}
+
+	switch (ret) {
+		case Z_DATA_ERROR:
+			return PINDF_FLTR_DAT_ERR;
+		case Z_MEM_ERROR:
+			return PINDF_FLTR_MEM_ERR;
+		case Z_BUF_ERROR:
+			// Should have been handled above, but fallback
+			return PINDF_FLTR_MEM_ERR;
+		default:
+			PINDF_ERR("unknown zlib error: %d", ret);
+			return PINDF_FLTR_DAT_ERR;
+	}
 }
 
 
 int pindf_zlib_compress(pindf_uchar_str *dest, pindf_uchar_str *src)
 {
-	size_t cap = dest->capacity;
+	uLongf cap = (uLongf)dest->capacity;
 	int ret = 0;
 	int n_retry = 0;
 	do {
-		ret = compress(dest->p, &cap, src->p, src->len);
-		if (ret == Z_MEM_ERROR) {
+		ret = compress(dest->p, &cap, src->p, (uLong)src->len);
+		if (ret == Z_MEM_ERROR || ret == Z_BUF_ERROR) {
 			if (n_retry >= PINDF_MAX_EXPAND_RETRY) {
 				PINDF_ERR("used up 2^%d times of mem, still not enough!", PINDF_MAX_EXPAND_RETRY);
 				break;
 			}
 			pindf_uchar_str_2xexpand(dest);
+			cap = (uLongf)dest->capacity;
+			n_retry++;
 		}
-	} while(ret == Z_MEM_ERROR);
-	
-	if (ret == Z_DATA_ERROR)
-		return PINDF_FLTR_DAT_ERR;
-	if (ret == Z_MEM_ERROR)
-		return PINDF_FLTR_MEM_ERR;
+	} while(ret == Z_MEM_ERROR || ret == Z_BUF_ERROR);
 
-	dest->len = cap;
-	return cap; 
+	if (ret == Z_OK) {
+		dest->len = (size_t)cap;
+		return (int)cap;
+	}
+
+	switch (ret) {
+		case Z_DATA_ERROR:
+			return PINDF_FLTR_DAT_ERR;
+		case Z_MEM_ERROR:
+			return PINDF_FLTR_MEM_ERR;
+		case Z_BUF_ERROR:
+			// Should have been handled above, but fallback
+			return PINDF_FLTR_MEM_ERR;
+		default:
+			PINDF_ERR("unknown zlib error: %d", ret);
+			return PINDF_FLTR_DAT_ERR;
+	}
 }
 
 int pindf_filter_init(pindf_stream_filter *filter, enum pindf_filter_type type, pindf_pdf_dict *decode_params)
