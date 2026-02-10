@@ -84,3 +84,12 @@ int pindf_uchar_str_cmp3(const pindf_uchar_str *a, const char *b)
 	ssize_t len = strlen(b);
 	return pindf_uchar_str_cmp2(a, (const uchar*)b, len);
 }
+
+pindf_uchar_str *pindf_uchar_str_copy(const pindf_uchar_str *str)
+{
+	if (str == NULL) return NULL;
+	pindf_uchar_str *copy = pindf_uchar_str_new();
+	pindf_uchar_str_init(copy, str->len);
+	memcpy(copy->p, str->p, str->len);
+	return copy;
+}

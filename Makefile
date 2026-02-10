@@ -11,7 +11,7 @@ LDFLAGS += $(ZLIB_LDFLAGS)
 
 # CFLAGS += -fsanitize=address
 
-all: lexer_test parser_test vec_test modif_test
+all: lexer_test parser_test vec_test modif_test dict_test doc_save_modif_test
 
 doc: Doxyfile
 	mkdir -p docs/doxygen
@@ -33,6 +33,12 @@ modif_test: test/modif_test.c ${SRC}
 
 compress_test: test/compress_test.c ${SRC}
 	CC -o test/compress_test test/compress_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
+
+dict_test: test/dict_test.c ${SRC}
+	CC -o test/dict_test test/dict_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
+
+doc_save_modif_test: test/doc_save_modif_test.c ${SRC}
+	CC -o test/doc_save_modif_test test/doc_save_modif_test.c ${SRC} ${CFLAGS} ${LDFLAGS}
 
 clean_doc:
 	rm -rf docs/_build

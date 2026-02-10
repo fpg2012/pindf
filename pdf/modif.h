@@ -18,16 +18,16 @@ typedef struct pindf_ind_obj_node {
 ///
 /// and then, append to the end of pdf file
 typedef struct {
-	/// a linked-list of indirect objects.
-	/// 
+	/// a linked-list of indirect objects. (with header node)
 	pindf_ind_obj_node *modif_log;
 	int count;
+	int64 max_obj_num;
 } pindf_modif;
 
-void pindf_modif_init(pindf_modif *modif);
+void pindf_modif_init(pindf_modif *modif, int64 size);
 void pindf_modif_destroy(pindf_modif *modif);
 
-pindf_modif *pindf_modif_new();
+pindf_modif *pindf_modif_new(int64 max_obj_num);
 
 /// @brief add a new ind_obj to modification log
 /// @param ind_obj the indirect object to add

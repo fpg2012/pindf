@@ -46,10 +46,14 @@ static void _free_node(pindf_ind_obj_node *node)
 	free(node);
 }
 
-void pindf_modif_init(pindf_modif *modif)
+void pindf_modif_init(pindf_modif *modif, int64 max_obj_num)
 {
-	modif->modif_log = _new_node();
-	modif->count = 0;
+	assert(max_obj_num >= 1);
+	*modif = (pindf_modif){
+		.modif_log = _new_node(),
+		.count = 0,
+		.max_obj_num = max_obj_num - 1,
+	};
 }
 
 void pindf_modif_destroy(pindf_modif *modif)
@@ -65,9 +69,10 @@ void pindf_modif_destroy(pindf_modif *modif)
 	_free_node(modif->modif_log);
 }
 
-pindf_modif *pindf_modif_new()
+pindf_modif *pindf_modif_new(int64 max_obj_num)
 {
 	pindf_modif *modif = (pindf_modif*)malloc(sizeof(pindf_modif));
+	pindf_modif_init(modif, max_obj_num);
 	return modif;
 }
 
@@ -97,5 +102,9 @@ void pindf_modif_addentry(pindf_modif *modif, pindf_pdf_ind_obj *ind_obj, uint o
 		};
 		prev->next = new_node;
 		modif->count++;
+
+		if (obj_num > modif->max_obj_num) {
+			modif->max_obj_num = obj_num;
+		}
 	}
 }

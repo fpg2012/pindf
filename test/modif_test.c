@@ -31,7 +31,7 @@ static pindf_ind_obj_node *find_node(pindf_modif *modif, int obj_num)
 int main(void)
 {
 	pindf_modif modif;
-	pindf_modif_init(&modif);
+	pindf_modif_init(&modif, 8);
 
 	pindf_pdf_ind_obj *obj5a = make_ind_obj(5);
 	pindf_pdf_ind_obj *obj2 = make_ind_obj(2);

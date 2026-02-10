@@ -1006,11 +1006,19 @@ pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexe
 				return NULL;
 			}
 
+			pindf_pdf_obj *ind_obj = pindf_pdf_obj_new(PINDF_PDF_IND_OBJ);
+			ind_obj->content.indirect_obj = (pindf_pdf_ind_obj){
+				.obj_num = obj_num,
+				.generation_num = 0,
+				.start_pos = offset,
+				.obj = ret_obj,
+			};
+
 			doc->ind_obj_list[obj_num] = (pindf_obj_entry){
 				.available = PINDF_OBJ_AVAILABLE,
 				.offset = ret_offset,
 				.number = obj_num,
-				.ind_obj = ret_obj,
+				.ind_obj = ind_obj,
 			};
 
 			if (result_of_decode == 0) {

@@ -30,6 +30,11 @@ int pindf_uchar_str_cmp2(const pindf_uchar_str *a, const uchar *b, size_t len);
 /// @param b c string for comparison
 int pindf_uchar_str_cmp3(const pindf_uchar_str *a, const char *b);
 
+/// @brief copy a uchar_str
+/// @param str source string
+/// @return newly allocated copy of the string
+pindf_uchar_str *pindf_uchar_str_copy(const pindf_uchar_str *str);
+
 /// @brief expand underlying memory space to new_size
 /// panic if failed
 /// @param new_size target size for expansion

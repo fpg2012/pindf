@@ -80,8 +80,37 @@ pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, const uchar *key, size_
 /// @brief get value by the key (key is a c string)
 pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key);
 
+/// @brief set value by the key (key is a byte string)
+/// if key exists, replace the old value; otherwise, add new key-value pair
+void pindf_dict_set_value(pindf_pdf_dict *dict, const uchar *key, size_t key_len, pindf_pdf_obj *value);
+
+/// @brief set value by the key (key is a c string)
+/// if key exists, replace the old value; otherwise, add new key-value pair
+void pindf_dict_set_value2(pindf_pdf_dict *dict, const char *key, pindf_pdf_obj *value);
+
 void pindf_pdf_obj_destroy(pindf_pdf_obj *obj);
 
+/// @brief deep copy a pdf object
+/// @param obj source object
+/// @return newly allocated deep copy of the object, NULL if obj is NULL
+pindf_pdf_obj *pindf_pdf_obj_deepcopy(const pindf_pdf_obj *obj);
+
+/// @brief deep copy a pdf dict
+/// @param dict source dictionary
+/// @param dst destination dictionary (already allocated, will be initialized)
+void pindf_dict_deepcopy(const pindf_pdf_dict *dict, pindf_pdf_dict *dst);
+
+/// @brief deep copy a pdf array
+/// @param arr source array (pindf_vector of pindf_pdf_obj*)
+/// @param dst destination vector (already allocated, will be initialized)
+void pindf_arr_deepcopy(const pindf_vector *arr, pindf_vector *dst);
+
+/// @brief deep copy an indirect object
+/// @param ind_obj source indirect object
+/// @param dst destination indirect object (already allocated)
+void pindf_ind_obj_deepcopy(const pindf_pdf_ind_obj *ind_obj, pindf_pdf_ind_obj *dst);
+
+void pindf_pdf_dict_init(pindf_pdf_dict *dict);
 void pindf_pdf_dict_destory(pindf_pdf_dict *dict);
 void pindf_pdf_stream_destroy(pindf_pdf_stream *stream);
 void pindf_pdf_ind_obj_destroy(pindf_pdf_ind_obj *ind_obj);

@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../type.h"
+#include <stdbool.h>
 #include "xref.h"
 #include "obj.h"
+#include "modif.h"
 
 
 /// @brief pdf document
@@ -19,6 +20,8 @@ typedef struct {
 	/// xref table
 	pindf_xref *xref;
 
+	pindf_modif *modif;
+
 	/// underlying pdf file pointer
 	FILE *fp;
 } pindf_doc;
@@ -27,3 +30,5 @@ typedef struct {
 /// @param default_version default pdf version if version number not present in the file
 /// @param fp underlying pdf file pointer
 pindf_doc *pindf_doc_new(const char *default_version, FILE *fp);
+
+void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref);

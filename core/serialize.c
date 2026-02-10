@@ -248,7 +248,7 @@ char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 
 void pindf_dict_serialize_file(pindf_pdf_dict *dict, FILE *fp)
 {
-	pindf_pdf_obj *temp_obj;
+	pindf_pdf_obj *temp_key, *temp_value;
 
 	fprintf(fp, "<< ");
 	pindf_vector *keys = dict->keys;
@@ -256,15 +256,15 @@ void pindf_dict_serialize_file(pindf_pdf_dict *dict, FILE *fp)
 	size_t len = keys->len;
 	
 	for (int i = 0; i < len; ++i) {
-		pindf_vector_index(keys, i, &temp_obj);
-		pindf_pdf_obj_serialize_file(temp_obj, fp);
-
-		fprintf(fp, " ");
-
-		pindf_vector_index(values, i, &temp_obj);
-		pindf_pdf_obj_serialize_file(temp_obj, fp);
+		pindf_vector_index(keys, i, &temp_key);
+		pindf_vector_index(values, i, &temp_value);
 		
-		fprintf(fp, " ");
+		if (temp_value != NULL) {
+			pindf_pdf_obj_serialize_file(temp_key, fp);
+			fprintf(fp, " ");
+			pindf_pdf_obj_serialize_file(temp_value, fp);
+			fprintf(fp, " ");
+		}
 	}
 
 	fprintf(fp, ">>");
