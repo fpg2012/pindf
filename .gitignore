@@ -14,3 +14,7 @@ docs/xml
 docs/doxygen
 docs/_build
 *.txt
+
+*.so
+*.dylib
+*.dll
