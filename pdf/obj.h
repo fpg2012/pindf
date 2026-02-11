@@ -114,3 +114,6 @@ void pindf_pdf_dict_init(pindf_pdf_dict *dict);
 void pindf_pdf_dict_destory(pindf_pdf_dict *dict);
 void pindf_pdf_stream_destroy(pindf_pdf_stream *stream);
 void pindf_pdf_ind_obj_destroy(pindf_pdf_ind_obj *ind_obj);
+
+pindf_pdf_obj *pindf_pdf_name_from_cstr(const char *cstr);
+pindf_pdf_obj *pindf_pdf_int_from_int(int num);

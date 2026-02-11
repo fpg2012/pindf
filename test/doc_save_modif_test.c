@@ -346,7 +346,7 @@ int main(int argc, const char **argv)
     }
 
     printf("\nSaving modifications to: %s\n", argv[2]);
-    pindf_doc_save_modif(doc, output);
+    pindf_doc_save_modif(doc, output, true);
     fclose(output);
     fclose(input);
 

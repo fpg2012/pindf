@@ -37,6 +37,9 @@ pindf_pdf_obj *pindf_dict_getvalue(pindf_pdf_dict *dict, const uchar *key, size_
 pindf_pdf_obj *pindf_dict_getvalue2(pindf_pdf_dict *dict, const char *key)
 {
 	assert(key != NULL);
+	if (dict->keys->len == 0) {
+		return NULL;
+	}
 	size_t len =  strlen(key);
 
 	pindf_pdf_obj **beg = (pindf_pdf_obj **)dict->keys->buf;
@@ -350,4 +353,12 @@ void pindf_pdf_dict_init(pindf_pdf_dict *dict)
 	assert(dict != NULL);
 	dict->keys = pindf_vector_new(8, sizeof(pindf_pdf_obj*));
 	dict->values = pindf_vector_new(8, sizeof(pindf_pdf_obj*));
+}
+
+pindf_pdf_obj *pindf_pdf_name_from_cstr(const char *cstr)
+{
+	pindf_uchar_str *str = pindf_uchar_str_from_cstr(cstr, strlen(cstr));
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_NAME);
+	obj->content.name = str;
+	return obj;
 }

@@ -1,10 +1,15 @@
 #include "pindf.h"
+#include "container/simple_vector.h"
 #include "container/uchar_str.h"
 #include "core/lexer.h"
 #include "core/parser.h"
+#include "core/serialize.h"
 #include "logger/logger.h"
 #include "pdf/doc.h"
+#include "pdf/modif.h"
 #include "pdf/obj.h"
+#include "stream/filter.h"
+#include <stdio.h>
 
 #define MATCH_INT_TOKEN_OR_ERR(result, token) \
 	do { \
@@ -1040,4 +1045,253 @@ pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexe
 	pindf_lexer_clear(lexer);
 
 	return doc->ind_obj_list[obj_num].ind_obj;
+}
+
+static void _write_xref_section(
+	FILE *fp,
+	pindf_ind_obj_node **first_node,
+	pindf_ind_obj_node *end_node,
+	int section_obj_num,
+	int section_len,
+	bool compress,
+	pindf_vector *index_vec,
+	uchar **buf_p
+)
+{
+	if (section_obj_num == -1 || section_len == 0) return;
+
+	if (!compress) {
+		fprintf(fp, "%d %d\r\n", section_obj_num, section_len);
+		while (*first_node != end_node) {
+			pindf_pdf_ind_obj *ind_obj = (*first_node)->ind_obj;
+			if (ind_obj == NULL) {
+				fprintf(fp, "0000000000 65535 f \r\n");
+			} else {
+				fprintf(fp, "%010zu %05d n\r\n", ind_obj->start_pos, ind_obj->generation_num);
+			}
+			*first_node = (*first_node)->next;
+		}
+	} else {
+		pindf_vector_append(index_vec, &section_obj_num);
+		pindf_vector_append(index_vec, &section_len);
+		while (*first_node != end_node) {
+			pindf_pdf_ind_obj *ind_obj = (*first_node)->ind_obj;
+			if (ind_obj == NULL) {
+				int ch = 0;
+				memcpy(*buf_p, &ch, 1);
+				*buf_p += 1;
+				memcpy(*buf_p, &ch, 4);
+				*buf_p += 4;
+				memcpy(*buf_p, &ch, 1);
+				*buf_p += 1;
+			} else {
+				int ch = 1;
+				memcpy(*buf_p, &ch, 1);
+				*buf_p += 1;
+				unsigned int pos = ind_obj->start_pos;
+				(*buf_p)[0] = (pos >> 24) & 0xFF;
+				(*buf_p)[1] = (pos >> 16) & 0xFF;
+				(*buf_p)[2] = (pos >> 8) & 0xFF;
+				(*buf_p)[3] = pos & 0xFF;
+				*buf_p += 4;
+				ch = 0;
+				memcpy(*buf_p, &ch, 1);
+				*buf_p += 1;
+			}
+			*first_node = (*first_node)->next;
+		}
+	}
+}
+
+/// @brief dump modification to a new files
+/// 1. append new indirect object definitions
+/// 2. append new xref table
+/// 3. append new trailer
+/// 4. append new startxref
+void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
+{
+	assert(doc != NULL);
+	assert(doc->xref_offset > 0);
+
+	if (doc->modif == NULL) {
+		PINDF_WARN("no modification");
+		return;
+	}
+
+	fprintf(fp, "%%%%PDF-1.5\r\n");
+
+	// 1
+	// TODO: compress object
+	pindf_ind_obj_node *node = doc->modif->modif_log->next;
+	while (node) {
+		size_t offset = ftell(fp);
+		node->ind_obj->start_pos = offset;
+		pindf_ind_obj_serialize_file(node->ind_obj, fp);
+		node = node->next;
+	}
+
+	size_t xref_offset = ftell(fp);
+
+	pindf_pdf_dict new_trailer;
+	pindf_dict_deepcopy(&doc->trailer, &new_trailer);
+
+	// Set new prev and size
+	// Prev: offset of previous xref table
+	if (doc->xref_offset <= 0) {
+		PINDF_ERR("no previous xref table (xref_offset = %d)", doc->xref_offset);
+		pindf_pdf_dict_destory(&new_trailer);
+		return;
+	}
+
+	pindf_pdf_obj *prev_obj = pindf_pdf_obj_new(PINDF_PDF_INT);
+	prev_obj->content.num = doc->xref_offset;
+	pindf_dict_set_value2(&new_trailer, "/Prev", prev_obj);
+
+	// Size is max_obj_num
+	pindf_pdf_obj *size_obj = pindf_pdf_obj_new(PINDF_PDF_INT);
+	// !IMPORTANT must be one plus max_obj_num
+	size_obj->content.num = doc->modif->max_obj_num + 2;
+	pindf_dict_set_value2(&new_trailer, "/Size", size_obj);
+
+	// del useless kv pairs
+	pindf_dict_set_value2(&new_trailer, "/Filter", NULL);
+	pindf_dict_set_value2(&new_trailer, "/Index", NULL);
+	pindf_dict_set_value2(&new_trailer, "/W", NULL);
+	pindf_dict_set_value2(&new_trailer, "/Type", NULL);
+	pindf_dict_set_value2(&new_trailer, "/DecodeParms", NULL);
+	pindf_dict_set_value2(&new_trailer, "/Length", NULL);
+
+	// 2
+	if (!compress_xref){
+		// xref table
+		fprintf(fp, "xref\n");
+		node = doc->modif->modif_log->next;
+
+		int section_obj_num = -1, section_len = 0;
+		pindf_ind_obj_node *first_node = node;
+		while (node) {
+			// find continuous regions
+			pindf_pdf_ind_obj *ind_obj = node->ind_obj;
+			if (ind_obj->obj_num != section_obj_num + section_len) {
+				_write_xref_section(fp, &first_node, node, section_obj_num, section_len, false, NULL, NULL);
+				section_obj_num = ind_obj->obj_num;
+				section_len = 1;
+				first_node = node;
+			} else {
+				section_len++;
+			}
+			node = node->next;
+		}
+		_write_xref_section(fp, &first_node, node, section_obj_num, section_len, false, NULL, NULL);
+
+		fprintf(fp, "trailer\r\n");
+
+		pindf_dict_serialize_file(&new_trailer, fp);
+
+		pindf_pdf_dict_destory(&new_trailer);
+	} else {
+		// compress xref table to xref stream
+		fprintf(fp, "%lld 0 obj\r\n", doc->modif->max_obj_num + 1);
+
+		// build xref stream
+		int w[3] = {1, 4, 1};
+		pindf_vector *index_vec = pindf_vector_new(10, sizeof(int));
+		uchar *buf = (uchar*)malloc(6 * (doc->modif->count + 10));
+		uchar *buf_p = buf;
+
+		// dump all obj index
+		node = doc->modif->modif_log->next;
+		int section_obj_num = -1, section_len = 0;
+		pindf_ind_obj_node *first_node = node;
+		while (node) {
+			// find continuous regions
+			pindf_pdf_ind_obj *ind_obj = node->ind_obj;
+			if (ind_obj->obj_num != section_obj_num + section_len) {
+				_write_xref_section(NULL, &first_node, node, section_obj_num, section_len, true, index_vec, &buf_p);
+				section_obj_num = ind_obj->obj_num;
+				section_len = 1;
+				first_node = node;
+			} else {
+				section_len++;
+			}
+			node = node->next;
+		}
+		_write_xref_section(NULL, &first_node, node, section_obj_num, section_len, true, index_vec, &buf_p);
+
+		// add xref itself
+		{
+			int temp = doc->modif->max_obj_num + 1;
+			pindf_vector_append(index_vec, &temp);
+			temp = 1;
+			pindf_vector_append(index_vec, &temp);
+
+			uint ch = 1;
+			*(buf_p++) = (uchar)ch;
+			ch = xref_offset;
+			*(buf_p++) = (uchar)(ch >> 24);
+			*(buf_p++) = (uchar)(ch >> 16);
+			*(buf_p++) = (uchar)(ch >> 8);
+			*(buf_p++) = (uchar)ch;
+			ch = 0;
+			*(buf_p++) = (uchar)ch;
+		}
+
+		pindf_uchar_str str;
+		str.p = buf;
+		str.len = buf_p - buf;
+		str.capacity = buf_p - buf;
+
+		pindf_uchar_str compressed_str;
+		pindf_uchar_str_init(&compressed_str, str.len);
+
+		int ret = pindf_zlib_compress(&compressed_str, &str);
+		if (ret < 0) {
+			PINDF_ERR("failed to compress xref stream");
+			return;
+		}
+		PINDF_DEBUG("compressed: len %zu -> %zu", str.len, compressed_str.len);
+		{
+			// decompress test
+			pindf_uchar_str temp;
+			pindf_uchar_str_init(&temp, str.len * 2);
+			pindf_zlib_uncompress(&temp, &compressed_str);
+			assert(pindf_uchar_str_cmp(&temp, &str) == 0);
+		}
+
+		int len = new_trailer.keys->len;
+		fprintf(fp, "<< ");
+		for (int i = 0; i < len; ++i) {
+			pindf_pdf_obj *temp_name, *temp_value;
+			pindf_vector_index(new_trailer.keys, i, &temp_name);
+			pindf_vector_index(new_trailer.values, i, &temp_value);
+
+			if (temp_value != NULL) {
+				fwrite(temp_name->content.name->p, 1, temp_name->content.name->len, fp);
+				fprintf(fp, " ");
+				pindf_pdf_obj_serialize_file(temp_value, fp);
+				fprintf(fp, " ");
+			}
+		}
+
+		fprintf(fp, "/Index [");
+		for (int i = 0; i < index_vec->len; ++i) {
+			int temp_int = 0;
+			pindf_vector_index(index_vec, i, &temp_int);
+			fprintf(fp, "%d ", temp_int);
+		}
+		fprintf(fp, "] ");
+
+		fprintf(fp, "/W [ 1 4 1 ] ");
+
+		fprintf(fp, "/Filter /FlateDecode ");
+		fprintf(fp, "/Type /XRef ");
+		fprintf(fp, "/Length %zu ", compressed_str.len);
+		fprintf(fp, ">>\r\n");
+		fprintf(fp, "stream\r\n");
+		fwrite(compressed_str.p, 1, compressed_str.len, fp);
+		fprintf(fp, "\r\nendstream\r\nendobj\r\n");
+	}
+	fprintf(fp, "\r\nstartxref\r\n");
+	fprintf(fp, "%zu\r\n", xref_offset);
+	fprintf(fp, "%%%%EOF\n");
 }
