@@ -30,5 +30,3 @@ typedef struct {
 /// @param default_version default pdf version if version number not present in the file
 /// @param fp underlying pdf file pointer
 pindf_doc *pindf_doc_new(const char *default_version, FILE *fp);
-
-void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref);

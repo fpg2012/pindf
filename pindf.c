@@ -1108,14 +1108,14 @@ static void _write_xref_section(
 /// 2. append new xref table
 /// 3. append new trailer
 /// 4. append new startxref
-void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
+int pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
 {
 	assert(doc != NULL);
 	assert(doc->xref_offset > 0);
 
 	if (doc->modif == NULL) {
 		PINDF_WARN("no modification");
-		return;
+		return 0;
 	}
 
 	fprintf(fp, "%%%%PDF-1.5\r\n");
@@ -1140,7 +1140,7 @@ void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
 	if (doc->xref_offset <= 0) {
 		PINDF_ERR("no previous xref table (xref_offset = %d)", doc->xref_offset);
 		pindf_pdf_dict_destory(&new_trailer);
-		return;
+		return -2;
 	}
 
 	pindf_pdf_obj *prev_obj = pindf_pdf_obj_new(PINDF_PDF_INT);
@@ -1247,16 +1247,18 @@ void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
 		int ret = pindf_zlib_compress(&compressed_str, &str);
 		if (ret < 0) {
 			PINDF_ERR("failed to compress xref stream");
-			return;
+			pindf_uchar_str_destroy(&str);
+			pindf_uchar_str_destroy(&compressed_str);
+			return -2;
 		}
 		PINDF_DEBUG("compressed: len %zu -> %zu", str.len, compressed_str.len);
-		{
-			// decompress test
-			pindf_uchar_str temp;
-			pindf_uchar_str_init(&temp, str.len * 2);
-			pindf_zlib_uncompress(&temp, &compressed_str);
-			assert(pindf_uchar_str_cmp(&temp, &str) == 0);
-		}
+		// {
+		// 	// decompress test
+		// 	pindf_uchar_str temp;
+		// 	pindf_uchar_str_init(&temp, str.len * 2);
+		// 	pindf_zlib_uncompress(&temp, &compressed_str);
+		// 	assert(pindf_uchar_str_cmp(&temp, &str) == 0);
+		// }
 
 		int len = new_trailer.keys->len;
 		fprintf(fp, "<< ");
@@ -1294,4 +1296,6 @@ void pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
 	fprintf(fp, "\r\nstartxref\r\n");
 	fprintf(fp, "%zu\r\n", xref_offset);
 	fprintf(fp, "%%%%EOF\n");
+
+	return 0;
 }

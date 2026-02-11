@@ -23,3 +23,4 @@ uint64 pindf_find_startxref(FILE *fp, uint64 file_len_ptr);
 pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexer *lexer, uint64 obj_num);
 
 int pindf_stream_decode(pindf_pdf_obj *stream, pindf_uchar_str *decoded);
+int pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref);
