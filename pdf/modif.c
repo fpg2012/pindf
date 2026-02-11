@@ -2,19 +2,6 @@
 #include "obj.h"
 #include <stdbool.h>
 
-static int _compare_obj(const void *a, const void *b)
-{
-	const pindf_pdf_obj *a_obj = (const pindf_pdf_obj*)a;
-	const pindf_pdf_obj *b_obj = (const pindf_pdf_obj*)b;
-
-	int a_num = a_obj->content.indirect_obj.obj_num;
-	int b_num = b_obj->content.indirect_obj.obj_num;
-
-	if (a_num < b_num) return -1;
-	else if (a_num == b_num) return 0;
-	else return 1;
-}
-
 static void _init_node(pindf_ind_obj_node *node)
 {
 	*node = (pindf_ind_obj_node){

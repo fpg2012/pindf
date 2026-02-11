@@ -14,13 +14,68 @@
 
 #define PINDF_STREAM_BUF_LEN 1048576
 
+/// @brief Parse a PDF file and create a document object
+/// @param parser Parser instance to use
+/// @param lexer Lexer instance to use
+/// @param fp File pointer to PDF file
+/// @param file_len Length of the PDF file in bytes (0 if unknown)
+/// @param ret_doc Output pointer to receive the parsed document
+/// @return 0 on success, negative error code on failure
 int pindf_file_parse(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, uint64 file_len, pindf_doc **ret_doc);
-int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type);
-int pindf_parse_one_obj_from_buffer(pindf_parser *parser, pindf_lexer *lexer, pindf_uchar_str *buffer, size_t offset, pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type);
-int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_doc *doc, uint64 startxref);
-uint64 pindf_find_startxref(FILE *fp, uint64 file_len_ptr);
 
+/// @brief Parse a single PDF object from a file
+/// @param parser Parser instance to use
+/// @param lexer Lexer instance to use
+/// @param f File pointer to read from
+/// @param ret_obj Output pointer to receive the parsed object
+/// @param ret_offset Optional output pointer to receive the file offset of the object
+/// @param target_type Expected object type (PINDF_PDF_* constant) or 0 for any type
+/// @return 0 on success, negative error code on failure, 1 if object fully parsed and matches target_type
+int pindf_parse_one_obj(pindf_parser *parser, pindf_lexer *lexer, FILE *f, pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type);
+
+/// @brief Parse a single PDF object from a buffer
+/// @param parser Parser instance to use
+/// @param lexer Lexer instance to use
+/// @param buffer Buffer containing PDF data
+/// @param offset Starting offset in the buffer
+/// @param ret_obj Output pointer to receive the parsed object
+/// @param ret_offset Optional output pointer to receive the buffer offset of the object
+/// @param target_type Expected object type (PINDF_PDF_* constant) or 0 for any type
+/// @return 0 on success, negative error code on failure, 1 if object fully parsed and matches target_type
+int pindf_parse_one_obj_from_buffer(pindf_parser *parser, pindf_lexer *lexer, pindf_uchar_str *buffer, size_t offset, pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type);
+
+/// @brief Parse xref table or stream
+/// @param parser Parser instance to use
+/// @param lexer Lexer instance to use
+/// @param fp File pointer to read from
+/// @param doc Document to populate with xref entries
+/// @param startxref Offset of the xref section in the file
+/// @return 0 on success, negative error code on failure
+int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_doc *doc, uint64 startxref);
+
+/// @brief Quickly find startxref offset by matching "startxref" string
+/// @param fp File pointer to read from
+/// @param file_len Optional file length (0 to use ftell)
+/// @return Offset of "startxref" keyword, or 0 if not found
+uint64 pindf_quick_match_startxref(FILE *fp, uint64 file_len);
+
+/// @brief Get a PDF object by its object number
+/// @param doc Document containing the object
+/// @param parser Parser instance to use for parsing
+/// @param lexer Lexer instance to use for parsing
+/// @param obj_num Object number to retrieve
+/// @return Pointer to the PDF object, or NULL if not found
 pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexer *lexer, uint64 obj_num);
 
+/// @brief Decode a stream object
+/// @param stream Stream object to decode
+/// @param decoded Output buffer to store decoded data
+/// @return 0 on success, negative error code on failure
 int pindf_stream_decode(pindf_pdf_obj *stream, pindf_uchar_str *decoded);
+
+/// @brief Save modified document to file
+/// @param doc Document to save
+/// @param fp File pointer to write to
+/// @param compress_xref Whether to compress xref table
+/// @return 0 on success, negative error code on failure
 int pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref);

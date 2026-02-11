@@ -56,7 +56,6 @@ char *pindf_dict_serialize_json(pindf_pdf_dict *dict, char *buf, size_t buf_size
 
 char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 {
-	pindf_uchar_str *str = NULL;
 	char *p = buf;
 	pindf_pdf_obj *temp_obj;
 
@@ -105,8 +104,7 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 		p += snprintf(p, BUF_REMAIN, "{\"type\": \"hex\",\"str\":\"%s\"}", (char*)obj->content.hex_str->p);
 		break;
 	case PINDF_PDF_NAME:
-	p += snprintf(p, BUF_REMAIN, "\"");
-		char *q, *end;
+		p += snprintf(p, BUF_REMAIN, "\"");
 		p = pindf_escape_copy(p, (char*)obj->content.name->p, obj->content.name->len, buf_size, buf);
 		p += snprintf(p, BUF_REMAIN, "\"");
 		break;
@@ -156,9 +154,7 @@ char *pindf_dict_serialize(pindf_pdf_dict *dict, char *buf, size_t buf_size)
 
 char *pindf_ind_obj_serialize(pindf_pdf_ind_obj *ind_obj, char *buf, size_t buf_size)
 {
-	pindf_uchar_str *str = NULL;
 	char *p = buf;
-	pindf_pdf_obj *temp_obj;
 
 	p += snprintf(p, BUF_REMAIN, "%d %d obj\r\n", ind_obj->obj_num, ind_obj->generation_num);
 	p = pindf_pdf_obj_serialize(ind_obj->obj, p, BUF_REMAIN);
@@ -168,7 +164,6 @@ char *pindf_ind_obj_serialize(pindf_pdf_ind_obj *ind_obj, char *buf, size_t buf_
 
 char *pindf_pdf_obj_serialize(pindf_pdf_obj *obj, char *buf, size_t buf_size)
 {
-	pindf_uchar_str *str = NULL;
 	char *p = buf;
 	pindf_pdf_obj *temp_obj;
 
@@ -272,9 +267,6 @@ void pindf_dict_serialize_file(pindf_pdf_dict *dict, FILE *fp)
 
 void pindf_ind_obj_serialize_file(pindf_pdf_ind_obj *ind_obj, FILE *fp)
 {
-	pindf_uchar_str *str = NULL;
-	pindf_pdf_obj *temp_obj;
-
 	fprintf(fp, "%d %d obj\r\n", ind_obj->obj_num, ind_obj->generation_num);
 	pindf_pdf_obj_serialize_file(ind_obj->obj, fp);
 	fprintf(fp, "\r\nendobj\r\n");
@@ -282,7 +274,6 @@ void pindf_ind_obj_serialize_file(pindf_pdf_ind_obj *ind_obj, FILE *fp)
 
 void pindf_pdf_obj_serialize_file(pindf_pdf_obj *obj, FILE *fp)
 {
-	pindf_uchar_str *str = NULL;
 	pindf_pdf_obj *temp_obj;
 
 	switch (obj->obj_type) {
@@ -319,7 +310,6 @@ void pindf_pdf_obj_serialize_file(pindf_pdf_obj *obj, FILE *fp)
 		break;
 	case PINDF_PDF_LTR_STR: {
 		fprintf(fp, "(");
-		char *q, *end;
 		fwrite(obj->content.ltr_str->p, 1, obj->content.ltr_str->len, fp);
 		fprintf(fp, ")");
 		break;

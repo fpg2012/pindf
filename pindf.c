@@ -351,7 +351,6 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 	int prev_offset;
 	pindf_vector *index_pairs_vec = NULL;
 	int index_pairs[512];
-	int index_n_pairs = 0;
 
 	pindf_pdf_obj *temp_obj = NULL;
 	
@@ -381,10 +380,8 @@ int pindf_parse_xref_obj(pindf_doc *doc, pindf_pdf_obj *obj, int *ret_prev)
 	if (index_pairs_vec == NULL) {
 		index_pairs[0] = 0;
 		index_pairs[1] = size;
-		index_n_pairs = 1;
 	} else {
 		pindf_pdf_obj *temp2 = NULL;
-		index_n_pairs = index_pairs_vec->len / 2;
 		for (int i = 0; i < index_pairs_vec->len; ++i) {
 			pindf_vector_index(index_pairs_vec, i, &temp2);
 			if (temp2->obj_type != PINDF_PDF_INT) {
@@ -459,8 +456,6 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 		// 2 - stream
 		int stream_xref = 0;
 
-		int ch_int;
-		uchar ch;
 		pindf_token *token;
 		
 		uint options = PINDF_LEXER_OPT_IGNORE_EOL | PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_WS | PINDF_LEXER_OPT_IGNORE_NO_EMIT;
@@ -517,14 +512,11 @@ int pindf_parse_xref(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, pindf_d
 	return ret;
 }
 
-uint64 pindf_quick_match_startxref(FILE *fp, uint64 file_len_ptr)
+uint64 pindf_quick_match_startxref(FILE *fp, uint64 file_len)
 {
-	uint64 file_len = ftell(fp);
-	if (file_len_ptr == 0) {
+	if (file_len == 0) {
 		fseek(fp, 0, SEEK_END);
 		file_len = ftell(fp);
-	} else {
-		file_len = file_len_ptr;
 	}
 	
 
@@ -538,7 +530,6 @@ uint64 pindf_quick_match_startxref(FILE *fp, uint64 file_len_ptr)
 	uchar ch;
 	int state = 0;
 	const char *startxref = "startxref";
-	uint64 startxref_start;
 
 	while (1) {
 		ch_int = fgetc(fp);
@@ -612,7 +603,7 @@ int pindf_file_parse(pindf_parser *parser, pindf_lexer *lexer, FILE *fp, uint64 
 	free(token);
 
 	// startxref
-	uint64 startxref_offset = pindf_quick_match_startxref(fp, file_len);
+	uint64 __attribute__((unused)) startxref_offset = pindf_quick_match_startxref(fp, file_len);
 	uint options = PINDF_LEXER_OPT_IGNORE_EOL | PINDF_LEXER_OPT_IGNORE_NO_EMIT | PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_WS;
 	while (1) {
 		token = pindf_lex_options(lexer, fp, options);
@@ -795,8 +786,6 @@ int pindf_parse_one_obj_from_buffer(
 	pindf_uchar_str *buffer, size_t offset,
 	pindf_pdf_obj **ret_obj, uint64 *ret_offset, int target_type)
 {
-	int stream_state = 0;
-	int stream_len = 0;
 	pindf_token *token = NULL;
 	int token_event = 0;
 
@@ -962,7 +951,6 @@ pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexe
 			// parse object stream header
 			pindf_token *token = NULL;
 			int chars_read = 0;
-			int state = 0; // 0 - obj num, 1 - offset
 			int nums[2] = {0, 0};
 			uint options = PINDF_LEXER_OPT_IGNORE_CMT | PINDF_LEXER_OPT_IGNORE_EOL | PINDF_LEXER_OPT_IGNORE_WS | PINDF_LEXER_OPT_IGNORE_NO_EMIT;
 			size_t cursor = 0;
@@ -1194,7 +1182,7 @@ int pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
 		fprintf(fp, "%lld 0 obj\r\n", doc->modif->max_obj_num + 1);
 
 		// build xref stream
-		int w[3] = {1, 4, 1};
+		// int w[3] = {1, 4, 1};
 		pindf_vector *index_vec = pindf_vector_new(10, sizeof(int));
 		uchar *buf = (uchar*)malloc(6 * (doc->modif->count + 10));
 		uchar *buf_p = buf;

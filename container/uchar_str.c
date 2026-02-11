@@ -27,7 +27,7 @@ pindf_uchar_str *pindf_uchar_str_from_cstr(const char *str, size_t len)
 void pindf_uchar_str_init_w_p(pindf_uchar_str *str, uchar *p, int len)
 {
 	str->p = p;
-	len = len;
+	str->len = len;
 }
 
 void pindf_uchar_str_expand(pindf_uchar_str *str, size_t new_size)

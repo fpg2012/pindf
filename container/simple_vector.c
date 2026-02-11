@@ -41,7 +41,6 @@ void pindf_vector_pop(pindf_vector *vec, void *item)
 
 void pindf_vector_destroy(pindf_vector *vec)
 {
-	void *end = vec->buf + vec->len*vec->elem_size;
 	free(vec->buf);
 }
 
