@@ -138,12 +138,12 @@ char *pindf_dict_serialize(pindf_pdf_dict *dict, char *buf, size_t buf_size)
 	
 	for (int i = 0; i < len; ++i) {
 		pindf_vector_index(keys, i, &temp_obj);
-		p = pindf_pdf_obj_serialize_json(temp_obj, p, BUF_REMAIN);
+		p = pindf_pdf_obj_serialize(temp_obj, p, BUF_REMAIN);
 
 		p += snprintf(p, BUF_REMAIN, " ");
 
 		pindf_vector_index(values, i, &temp_obj);
-		p = pindf_pdf_obj_serialize_json(temp_obj, p, BUF_REMAIN);
+		p = pindf_pdf_obj_serialize(temp_obj, p, BUF_REMAIN);
 		
 		p += snprintf(p, BUF_REMAIN, " ");
 	}
