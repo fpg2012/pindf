@@ -3,6 +3,7 @@
 
 #define PINDF_MIN(a, b) ((a) < (b) ? (a) : (b))
 #define PINDF_MAX(a, b) ((a) > (b) ? (a) : (b))
+#define PINDF_MAX_DEREF_ITER 100
 
 typedef unsigned char uchar;
 typedef unsigned int uint;

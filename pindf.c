@@ -1287,3 +1287,32 @@ int pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref)
 
 	return 0;
 }
+
+pindf_pdf_obj *pindf_deref(pindf_doc *doc, pindf_pdf_obj *obj) {
+	if (obj == NULL) {
+		return NULL;
+	}
+	int n_iteration = 0;
+	while (obj->obj_type == PINDF_PDF_REF || obj->obj_type == PINDF_PDF_IND_OBJ) {
+		if (obj->obj_type == PINDF_PDF_REF) {
+			pindf_lexer *lexer = pindf_lexer_new();
+			pindf_parser *parser = pindf_parser_new();
+			pindf_pdf_obj *temp_obj = NULL;
+			temp_obj = pindf_doc_getobj(doc, parser, lexer, obj->content.ref.obj_num);
+			obj = temp_obj;
+			pindf_lexer_clear(lexer);
+			pindf_parser_destroy(parser);
+			free(lexer);
+			free(parser);
+		} else {
+			obj = obj->content.indirect_obj.obj;
+		}
+		n_iteration++;
+		if (n_iteration > PINDF_MAX_DEREF_ITER) {
+			PINDF_ERR("exceed max dereference times");
+			obj = NULL;
+			break;
+		}
+	}
+	return obj;
+}

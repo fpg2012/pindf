@@ -79,3 +79,9 @@ int pindf_stream_decode(pindf_pdf_obj *stream, pindf_uchar_str *decoded);
 /// @param compress_xref Whether to compress xref table
 /// @return 0 on success, negative error code on failure
 int pindf_doc_save_modif(pindf_doc *doc, FILE *fp, bool compress_xref);
+
+/// @brief Dereference a PDF object, following indirect references
+/// @param doc Document containing the object
+/// @param obj Object to dereference
+/// @return Dereferenced object, or NULL if not found
+pindf_pdf_obj *pindf_deref(pindf_doc *doc, pindf_pdf_obj *obj);
