@@ -101,7 +101,11 @@ char *pindf_pdf_obj_serialize_json(pindf_pdf_obj *obj, char *buf, size_t buf_siz
 		break;
 	}
 	case PINDF_PDF_HEX_STR:
-		p += snprintf(p, BUF_REMAIN, "{\"type\": \"hex\",\"str\":\"%s\"}", (char*)obj->content.hex_str->p);
+		p += snprintf(p, BUF_REMAIN, "{\"type\": \"hex\",\"str\":\"");
+		for (int i = 0; i < obj->content.hex_str->len; i++) {
+			p += snprintf(p, BUF_REMAIN, "%02x", obj->content.hex_str->p[i]);
+		}
+		p += snprintf(p, BUF_REMAIN, "\"}");
 		break;
 	case PINDF_PDF_NAME:
 		p += snprintf(p, BUF_REMAIN, "\"");
@@ -315,7 +319,11 @@ void pindf_pdf_obj_serialize_file(pindf_pdf_obj *obj, FILE *fp)
 		break;
 	}
 	case PINDF_PDF_HEX_STR:
-		fprintf(fp, "<%s>", (char*)obj->content.hex_str->p);
+		fprintf(fp, "<");
+		for (int i = 0; i < obj->content.hex_str->len; i++) {
+			fprintf(fp, "%02x", obj->content.hex_str->p[i]);
+		}
+		fprintf(fp, ">");
 		break;
 	case PINDF_PDF_NAME:
 		fprintf(fp, "%s", (char*)obj->content.name->p);

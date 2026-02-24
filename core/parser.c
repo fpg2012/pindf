@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "../logger/logger.h"
 #include "lexer.h"
+#include "ctype.h"
 
 #define ASSERT_EMPTY_STACK() \
 	do { if (parser->symbol_stack->len == 0) { perror("empty stack!"); return -1; } } while(0)
@@ -207,13 +208,59 @@ int _reduce_ind_obj(pindf_parser *parser)
 	return 0;
 }
 
+uchar _to_number(uchar ch) {
+	if (ch >= '0' && ch <= '9') {
+		return ch - '0';
+	}
+	if (ch >= 'A' && ch <= 'F') {
+		return ch - 'A' + 10;
+	}
+	if (ch >= 'a' && ch <= 'f') {
+		return ch - 'a' + 10;
+	}
+	return 0;
+}
+
 int _reduce_int(pindf_parser *parser) { REDUCE_SINGLE_OBJ(num, PDF_INT, atoi((const char*)symbol->content.term->raw_str->p)); }
 int _reduce_real(pindf_parser *parser) { REDUCE_SINGLE_OBJ(real_num, PDF_REAL, atof((const char*)symbol->content.term->raw_str->p)); }
 int _reduce_null(pindf_parser *parser) { REDUCE_SINGLE_OBJ(num, PDF_NULL, 0); }
 int _reduce_bool(pindf_parser *parser) { REDUCE_SINGLE_OBJ(boolean, PDF_BOOL, strcmp("true", (const char*)symbol->content.term->raw_str->p) == 0 ? 1 : 0); }
 int _reduce_name(pindf_parser *parser) { REDUCE_SINGLE_OBJ(name, PDF_NAME, symbol->content.term->raw_str); }
 int _reduce_ltr_str(pindf_parser *parser) { REDUCE_SINGLE_OBJ(ltr_str, PDF_LTR_STR, symbol->content.term->raw_str); }
-int _reduce_hex_str(pindf_parser *parser) { REDUCE_SINGLE_OBJ(hex_str, PDF_LTR_STR, symbol->content.term->raw_str); } // maybe we should convert the raw_str here
+int _reduce_hex_str(pindf_parser *parser) {
+	PINDF_DEBUG("reduce single obj");
+	ASSERT_EMPTY_STACK();
+	pindf_symbol *symbol = NULL;
+	pindf_vector_last_elem(parser->symbol_stack, &symbol);
+	pindf_pdf_obj *obj = pindf_pdf_obj_new(PINDF_PDF_HEX_STR);
+
+	pindf_uchar_str *raw_str = symbol->content.term->raw_str;
+	size_t len = raw_str->len;
+	pindf_uchar_str *real_str = pindf_uchar_str_new();
+	pindf_uchar_str_init(real_str, len % 2 == 0 ? len / 2 : (len + 1) / 2);
+	for (int i = 0; i < raw_str->len; i += 2) {
+		uchar ch_1 = raw_str->p[i];
+		uchar ch_2 = '0';
+		if (i + 1 < raw_str->len) {
+			ch_2 = raw_str->p[i + 1];
+		}
+
+		uchar real_ch = 0;
+		real_ch |= _to_number(ch_1) << 4;
+		real_ch |= _to_number(ch_2);
+		real_str->p[i/2] = real_ch;
+	}
+
+	obj->content.hex_str = real_str;
+	symbol->type = PINDF_SYMBOL_NONTERM;
+	symbol->content.non_term = obj;
+
+	pindf_uchar_str_destroy(raw_str);
+	free(raw_str);
+
+	// REDUCE_SINGLE_OBJ(hex_str, PDF_HEX_STR, symbol->content.term->raw_str);
+	return 0;
+}
 
 int pindf_parser_add_stream(pindf_parser *parser, pindf_uchar_str *stream, uint64 content_offset)
 {
