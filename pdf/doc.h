@@ -30,3 +30,7 @@ typedef struct {
 /// @param default_version default pdf version if version number not present in the file
 /// @param fp underlying pdf file pointer
 pindf_doc *pindf_doc_new(const char *default_version, FILE *fp);
+
+/// @brief destroy the document
+/// @param doc doc object to destroy
+void pindf_doc_destroy(pindf_doc *doc);

@@ -858,9 +858,6 @@ pindf_pdf_obj *pindf_doc_getobj(pindf_doc *doc, pindf_parser *parser, pindf_lexe
 	assert(doc != NULL);
 	assert(doc->xref != NULL);
 
-	pindf_parser_clear(parser);
-	pindf_lexer_clear(lexer);
-
 	if (obj_num >= doc->xref->size) {
 		// invalid obj num
 		PINDF_WARN("obj_num %d out of xref table size %zu", obj_num, doc->xref->size);

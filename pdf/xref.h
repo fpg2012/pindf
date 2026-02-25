@@ -57,6 +57,8 @@ typedef struct {
 	pindf_pdf_obj *ind_obj;
 } pindf_obj_entry;
 
+void pindf_obj_entry_destroy(pindf_obj_entry *entry);
+
 typedef struct pindf_xref pindf_xref;
 
 /// @brief xref table
@@ -91,3 +93,5 @@ pindf_xref_entry *pindf_xref_getentry(pindf_xref *table, pindf_pdf_obj *ref);
 /// @brief allocation a continous memory in xref table for a section
 /// this should be the only function to create xref section struct
 pindf_xref_section *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, size_t len);
+
+void pindf_xref_destroy(pindf_xref *xref);

@@ -38,6 +38,23 @@ void pindf_xref_init(pindf_xref *xref, size_t size)
 	xref->first_section = NULL;
 }
 
+void pindf_xref_destroy(pindf_xref *xref)
+{
+	// destory sections
+	pindf_xref_section *temp_section = xref->first_section;
+	while (xref->first_section != NULL) {
+		temp_section = xref->first_section->next_table;
+		free(xref->first_section);
+		xref->first_section = temp_section;
+	}
+
+	// destory entries
+	free(xref->entries);
+
+	xref->n_sections = 0;
+	xref->size = 0;
+}
+
 pindf_xref_section *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, size_t len)
 {
 	assert(xref != NULL && "xref is null");
@@ -64,4 +81,18 @@ pindf_xref_section *pindf_xref_alloc_section(pindf_xref *xref, size_t obj_num, s
 	xref->n_sections++;
 
 	return section;
+}
+
+void pindf_obj_entry_destroy(pindf_obj_entry *entry) {
+	if (entry == NULL || entry->available != PINDF_OBJ_AVAILABLE) {
+		return;
+	}
+
+	if (entry->ind_obj == NULL) {
+		return;
+	}
+	
+	pindf_pdf_obj_destroy(entry->ind_obj);
+	free(entry->ind_obj);
+	entry->ind_obj = NULL;
 }
