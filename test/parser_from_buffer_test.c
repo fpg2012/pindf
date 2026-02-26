@@ -11,7 +11,7 @@ int main()
 	pindf_lexer_init(lexer);
 
 	pindf_pdf_obj *obj = NULL;
-	uint64_t ret_offset = 0;
+	uint64 ret_offset = 0;
 	pindf_uchar_str *buf = pindf_uchar_str_from_cstr(input, strlen(input));
 	int ret = pindf_parse_one_obj_from_buffer(parser, lexer, buf, 0, &obj, &ret_offset, PINDF_PDF_UNK);
 

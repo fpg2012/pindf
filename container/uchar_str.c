@@ -81,7 +81,7 @@ int pindf_uchar_str_cmp2(const pindf_uchar_str *a, const uchar *b, size_t len)
 
 int pindf_uchar_str_cmp3(const pindf_uchar_str *a, const char *b)
 {
-	ssize_t len = strlen(b);
+	uint64 len = strlen(b);
 	return pindf_uchar_str_cmp2(a, (const uchar*)b, len);
 }
 
